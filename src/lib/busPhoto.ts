@@ -28,7 +28,7 @@ function parseVehicle(name: string): VehicleBits {
 const GREEN = '#2d5035';
 const GOLD = '#c3945d';
 
-function busSvg(b: VehicleBits): string {
+function busSvg(_b: VehicleBits): string {
   // Side view: long green body, gold stripe, window row, two wheels.
   return `
   <rect x="0" y="0" width="320" height="180" fill="url(#sky)"/>
@@ -52,7 +52,7 @@ function busSvg(b: VehicleBits): string {
   </g>`;
 }
 
-function vanSvg(b: VehicleBits): string {
+function vanSvg(_b: VehicleBits): string {
   // Shorter, taller SUV/van silhouette.
   return `
   <rect x="0" y="0" width="320" height="180" fill="url(#sky)"/>

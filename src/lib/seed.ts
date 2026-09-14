@@ -962,7 +962,7 @@ function seedCamps(people: PersonRec[]): { events: EventRec[]; buses: CampBus[];
   // Lifeguard — shifted by free-time block.
   const guard = role('Lifeguard', 'ti-swimming', 'Required whenever the lake is open.');
   const gAM = shift(guard, 'Free time — morning', '10:30', '12:00');
-  const gPM = shift(guard, 'Free time — afternoon', '15:00', '17:00');
+  shift(guard, 'Free time — afternoon', '15:00', '17:00');
   duty(guard, 'Coach Dan Rivera', { email: 'drivera@demo.wcsmiami.org', shiftId: gAM });
 
   return { events, buses, rooms, invites, cabins, cabinRooms, roles, shifts, duties };

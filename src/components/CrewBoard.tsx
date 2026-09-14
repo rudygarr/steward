@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../lib/store';
 import { useSession, initials } from '../lib/session';
 import {
-  coverage, coverageLabel, coverageTone, positionsOf, qualifiedFor, blockoutForEvent,
+  coverage, coverageLabel, coverageTone, qualifiedFor, blockoutForEvent,
   eventCrew, teamsOnEvent,
 } from '../lib/crew';
 import Modal from './Modal';
