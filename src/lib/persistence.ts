@@ -25,11 +25,46 @@ import type { Database } from './types';
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-const KEY = 'wcs-spaces-db-v1';
+const KEY = 'steward-db-v1';
+
+/** The key used before the 2026-09-14 rename. Read once, then retired. */
+const LEGACY_KEY = 'wcs-spaces-db-v1';
+
+/**
+ * Returns the raw payload for KEY, carrying a pre-rename demo state forward
+ * on first load. github.io is a single origin, so a browser that used the old
+ * /wcs-spaces/ URL still has that data sitting here.
+ */
+function readRaw(): string | null {
+  const current = localStorage.getItem(KEY);
+  if (current !== null) {
+    // The new key wins. Drop any old copy so it can't resurface later.
+    try {
+      localStorage.removeItem(LEGACY_KEY);
+    } catch {
+      /* ignore */
+    }
+    return current;
+  }
+
+  const legacy = localStorage.getItem(LEGACY_KEY);
+  if (legacy === null) return null;
+
+  try {
+    // Only retire the old copy once the new one is safely written, so a
+    // storage failure can't lose the state instead of moving it.
+    localStorage.setItem(KEY, legacy);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // Migration failed (quota/private mode) — the old copy stays put and we
+    // still run off it this session. We'll try again on the next load.
+  }
+  return legacy;
+}
 
 export async function loadDB(): Promise<Database | null> {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = readRaw();
     return raw ? (JSON.parse(raw) as Database) : null;
   } catch {
     return null;
@@ -47,6 +82,9 @@ export async function saveDB(db: Database): Promise<void> {
 export async function clearDB(): Promise<void> {
   try {
     localStorage.removeItem(KEY);
+    // Clear the pre-rename key too, or a Reset would be undone by the
+    // migration resurrecting the old state on the next load.
+    localStorage.removeItem(LEGACY_KEY);
   } catch {
     /* ignore */
   }
