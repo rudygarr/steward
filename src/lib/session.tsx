@@ -1,22 +1,61 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { buildSeed } from './seed';
 import { setAuditActor } from './store';
+import {
+  msalConfigured,
+  currentUser,
+  signInWithMicrosoft,
+  signOutFromMicrosoft,
+} from './msal';
 import type { PersonRec } from './types';
 
-// Fakes auth for the demo: pick any staff member and the whole app
-// re-renders as if they were signed in. Replaced by Microsoft SSO later.
+// Sign-in is real Microsoft Entra ID SSO (see lib/msal). The "view as"
+// switcher below is a separate thing: it re-renders the app through another
+// staff member's permissions for testing, and never grants access — you have
+// to be signed in as a WCS account before you can reach it at all.
 interface SessionCtx {
   user: PersonRec;
   setUser: (p: PersonRec) => void;
-  // Demo sign-in gate: the splash sets this true. Real Microsoft SSO later.
+  /** True once a WCS account has signed in through Microsoft. */
   authed: boolean;
-  signIn: () => void;
+  /** Opens the Microsoft sign-in popup. Rejects with a readable message. */
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+  /** In flight, so the splash can show a spinner instead of a dead button. */
+  signingIn: boolean;
+  /** Set when sign-in failed, for display on the splash. */
+  authError: string | null;
+  /** False until an Entra app registration is wired up. */
+  configured: boolean;
 }
 
 const Ctx = createContext<SessionCtx | null>(null);
 
 const seedPeople = buildSeed().people;
 const defaultUser = seedPeople.find((p) => p.name === 'Rudy Garrido') ?? seedPeople[0];
+
+/**
+ * Turn the signed-in Microsoft account into the staff record the app runs on.
+ * Matching is by school email. Someone real but not in the roster (a new hire,
+ * or anyone the seed predates) still gets in, at the lowest permissions —
+ * least privilege beats locking a legitimate employee out.
+ */
+function personFor(ms: { name: string; email: string }): PersonRec {
+  const match = seedPeople.find((p) => p.email?.toLowerCase() === ms.email);
+  if (match) return match;
+  return {
+    id: `ms-${ms.email}`,
+    name: ms.name,
+    email: ms.email,
+    event: 'Viewer',
+    rooms: 'Viewer',
+    resources: 'Viewer',
+    people: 'Viewer',
+    resolves_conflicts: false,
+    site_admin: false,
+    active: true,
+  };
+}
 
 // Keep the audit trail's actor in lock-step with the "view as" user, so store
 // mutations attribute changes to whoever's currently signed in.
@@ -25,12 +64,72 @@ setAuditActor(defaultUser.name);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PersonRec>(defaultUser);
   const [authed, setAuthed] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const adopt = (ms: { name: string; email: string }) => {
+    const p = personFor(ms);
+    setAuditActor(p.name);
+    setUser(p);
+    setAuthed(true);
+  };
+
+  // Restore an existing Microsoft session so a refresh doesn't re-prompt.
+  useEffect(() => {
+    let cancelled = false;
+    void currentUser().then((ms) => {
+      if (ms && !cancelled) adopt(ms);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const switchUser = (p: PersonRec) => {
     setAuditActor(p.name);
     setUser(p);
   };
+
+  const signIn = async () => {
+    setAuthError(null);
+    setSigningIn(true);
+    try {
+      adopt(await signInWithMicrosoft());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/user_cancelled|user_canceled/i.test(msg)) {
+        // Closing the popup is a choice, not an error worth shouting about.
+        setAuthError(null);
+      } else if (/popup_window_error|empty_window_error|popup.*block/i.test(msg)) {
+        // A blocked popup looks identical to nothing happening, so name it.
+        setAuthError('Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.');
+      } else {
+        setAuthError('Could not sign in with your WCS account. Please try again.');
+      }
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
+  const signOut = async () => {
+    await signOutFromMicrosoft();
+    setAuthed(false);
+    setUser(defaultUser);
+  };
+
   return (
-    <Ctx.Provider value={{ user, setUser: switchUser, authed, signIn: () => setAuthed(true) }}>
+    <Ctx.Provider
+      value={{
+        user,
+        setUser: switchUser,
+        authed,
+        signIn,
+        signOut,
+        signingIn,
+        authError,
+        configured: msalConfigured,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

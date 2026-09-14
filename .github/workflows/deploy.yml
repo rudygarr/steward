@@ -25,6 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Public SPA identifiers, not secrets (they ship in the bundle), so
+          # these are repository *variables*: Settings > Secrets and variables
+          # > Actions > Variables. Until they're set the build still succeeds
+          # and the splash says sign-in isn't configured.
+          VITE_ENTRA_CLIENT_ID: ${{ vars.VITE_ENTRA_CLIENT_ID }}
+          VITE_ENTRA_TENANT_ID: ${{ vars.VITE_ENTRA_TENANT_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

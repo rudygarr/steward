@@ -3369,3 +3369,32 @@
 /* "Your camp jobs" on My invitations */
 .inv-card-duty { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); margin-top: 4px; }
 .inv-card-duty .ti { font-size: 15px; color: var(--green); }
+
+/* Sign-in states: disabled button while unconfigured, spinner mid-popup,
+   and a readable error line under the button. */
+.signin-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.signin-spin {
+  animation: signin-spin 0.9s linear infinite;
+}
+@keyframes signin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.signin-note,
+.signin-error {
+  margin-top: 14px;
+  font-size: 13px;
+  max-width: 300px;
+  text-align: center;
+  line-height: 1.5;
+}
+.signin-note {
+  color: var(--muted, #8b8b8b);
+}
+.signin-error {
+  color: #e2a0a0;
+}
