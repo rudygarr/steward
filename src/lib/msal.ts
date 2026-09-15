@@ -36,13 +36,11 @@ const msal = msalConfigured
         // Single-tenant: only WCS accounts, so nobody outside the school can
         // sign in even though the URL is public.
         authority: `https://login.microsoftonline.com/${tenantId}`,
-        // A dedicated bridge page, NOT the app. MSAL sends the sign-in
-        // response here; auth.html broadcasts it back to this window and
-        // closes itself. Pointing this at the app instead loads the whole
-        // SPA in the popup, where HashRouter owns the fragment the response
-        // arrives in — which left the popup showing a second login screen.
-        // Resolved relative to the app so it works at any base path.
-        redirectUri: new URL('auth.html', window.location.href).href,
+        // The app's own URL — the one redirect URI already registered in
+        // Entra. main.tsx detects the auth response arriving here and runs
+        // MSAL's redirect bridge instead of mounting the app, so no extra
+        // redirect URI has to be registered for sign-in to work.
+        redirectUri: window.location.origin + window.location.pathname,
       },
       cache: {
         // Survives a refresh, unlike sessionStorage, so a presenter who
