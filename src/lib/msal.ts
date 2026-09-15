@@ -14,10 +14,11 @@ import {
  *  the bundle by design, which is why they're build-time `vars`, not
  *  repository secrets.
  *
- *  We use the POPUP flow deliberately. The app routes with HashRouter, and
- *  a redirect sign-in comes back with its response in the URL fragment —
- *  the same place the router keeps its state, which makes the two fight.
- *  A popup keeps the app's own URL untouched.
+ *  We use the POPUP flow with a dedicated redirect page (auth.html). The app
+ *  routes with HashRouter, which owns the URL fragment the auth response
+ *  arrives in, so the response must never land on an app page. auth.html
+ *  runs MSAL's redirect bridge, which broadcasts the response back here over
+ *  a BroadcastChannel and closes the popup.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -34,7 +35,13 @@ const msal = msalConfigured
         // Single-tenant: only WCS accounts, so nobody outside the school can
         // sign in even though the URL is public.
         authority: `https://login.microsoftonline.com/${tenantId}`,
-        redirectUri: window.location.origin + window.location.pathname,
+        // A dedicated bridge page, NOT the app. MSAL sends the sign-in
+        // response here; auth.html broadcasts it back to this window and
+        // closes itself. Pointing this at the app instead loads the whole
+        // SPA in the popup, where HashRouter owns the fragment the response
+        // arrives in — which left the popup showing a second login screen.
+        // Resolved relative to the app so it works at any base path.
+        redirectUri: new URL('auth.html', window.location.href).href,
       },
       cache: {
         // Survives a refresh, unlike sessionStorage, so a presenter who
