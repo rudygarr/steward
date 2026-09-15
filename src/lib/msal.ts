@@ -1,6 +1,7 @@
 import {
   PublicClientApplication,
-  InteractionRequiredAuthError,
+  BrowserAuthError,
+  BrowserAuthErrorCodes,
   type AccountInfo,
 } from '@azure/msal-browser';
 
@@ -82,24 +83,49 @@ export async function currentUser(): Promise<MsUser | null> {
   return toUser(account);
 }
 
+const SCOPES = ['openid', 'profile', 'User.Read'];
+
 export async function signInWithMicrosoft(): Promise<MsUser> {
   if (!msal) throw new Error('Microsoft sign-in is not configured yet.');
   await init();
-  const scopes = ['openid', 'profile', 'User.Read'];
-  try {
-    // Silent first: an already-signed-in staff member shouldn't see a popup.
-    const [account] = msal.getAllAccounts();
-    if (account) {
-      await msal.acquireTokenSilent({ scopes, account });
-      msal.setActiveAccount(account);
-      return toUser(account);
+
+  // Silent first: an already-signed-in staff member shouldn't see a popup.
+  // Any failure here only means we need the popup — it is never fatal.
+  const [existing] = msal.getAllAccounts();
+  if (existing) {
+    try {
+      await msal.acquireTokenSilent({ scopes: SCOPES, account: existing });
+      msal.setActiveAccount(existing);
+      return toUser(existing);
+    } catch {
+      // fall through to the popup
     }
-  } catch (e) {
-    // Consent or MFA needed — fall through to the popup, which can prompt.
-    if (!(e instanceof InteractionRequiredAuthError)) throw e;
   }
-  const result = await msal.loginPopup({ scopes, prompt: 'select_account' });
-  msal.setActiveAccount(result.account);
+
+  try {
+    return await popupSignIn();
+  } catch (e) {
+    // A sign-in abandoned part-way — a closed popup, or one of the redirect-URI
+    // failures — leaves MSAL's "interaction in progress" flag set, and that
+    // flag then blocks every later attempt with no way out from the UI. Clear
+    // it once and retry, rather than asking someone to wipe site data.
+    if (
+      e instanceof BrowserAuthError &&
+      e.errorCode === BrowserAuthErrorCodes.interactionInProgress
+    ) {
+      return await popupSignIn(true);
+    }
+    throw e;
+  }
+}
+
+async function popupSignIn(overrideInteractionInProgress = false): Promise<MsUser> {
+  const result = await msal!.loginPopup({
+    scopes: SCOPES,
+    prompt: 'select_account',
+    ...(overrideInteractionInProgress ? { overrideInteractionInProgress: true } : {}),
+  });
+  msal!.setActiveAccount(result.account);
   return toUser(result.account);
 }
 

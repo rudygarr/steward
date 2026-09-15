@@ -96,7 +96,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       adopt(await signInWithMicrosoft());
     } catch (e) {
+      // Always log the whole thing — a generic on-screen message with the real
+      // cause swallowed makes a sign-in failure impossible to diagnose.
+      console.error('[steward] sign-in failed', e);
       const msg = e instanceof Error ? e.message : String(e);
+      const code =
+        typeof e === 'object' && e && 'errorCode' in e
+          ? String((e as { errorCode?: unknown }).errorCode ?? '')
+          : '';
       if (/user_cancelled|user_canceled/i.test(msg)) {
         // Closing the popup is a choice, not an error worth shouting about.
         setAuthError(null);
@@ -104,7 +111,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // A blocked popup looks identical to nothing happening, so name it.
         setAuthError('Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.');
       } else {
-        setAuthError('Could not sign in with your WCS account. Please try again.');
+        // Show the identifying code: AADSTS50011 and friends say precisely
+        // what's misconfigured, and "please try again" alone never will.
+        setAuthError(
+          `Could not sign in with your WCS account${code ? ` (${code})` : ''}. ` +
+            'Please try again — details are in the browser console.',
+        );
       }
     } finally {
       setSigningIn(false);
