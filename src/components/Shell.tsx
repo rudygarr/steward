@@ -11,7 +11,7 @@ import type { Notif } from '../lib/types';
 import helmetMark from '../assets/brand/warrior-helmet.png';
 
 function RoleSwitcher() {
-  const { user, setUser } = useSession();
+  const { user, setUser, signOut } = useSession();
   const { db, reset } = useStore();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -27,7 +27,11 @@ function RoleSwitcher() {
       {open && (
         <div className="switch-backdrop" onClick={() => setOpen(false)}>
           <div className="switch-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="switch-head">View the app as any staff member — fakes sign-in for the demo.</div>
+            <div className="switch-head">
+              Signed in as <strong>{user.email || user.name}</strong>. Viewing the app as
+              another staff member changes what you see — it doesn&rsquo;t change who
+              you&rsquo;re signed in as.
+            </div>
             <button
               className="add-row"
               onClick={() => {
@@ -70,6 +74,16 @@ function RoleSwitcher() {
               }}
             >
               <i className="ti ti-refresh" /> Reset demo data
+            </button>
+            <button
+              className="add-row"
+              style={{ color: 'var(--text-3)' }}
+              onClick={() => {
+                setOpen(false);
+                void signOut();
+              }}
+            >
+              <i className="ti ti-logout" /> Sign out
             </button>
           </div>
         </div>
