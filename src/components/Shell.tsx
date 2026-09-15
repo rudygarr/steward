@@ -27,10 +27,24 @@ function RoleSwitcher() {
       {open && (
         <div className="switch-backdrop" onClick={() => setOpen(false)}>
           <div className="switch-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="switch-account">
+              <div className="switch-account-who">
+                <div className="switch-account-label">Signed in as</div>
+                <div className="switch-account-email">{user.email || user.name}</div>
+              </div>
+              <button
+                className="switch-signout"
+                onClick={() => {
+                  setOpen(false);
+                  void signOut();
+                }}
+              >
+                <i className="ti ti-logout" /> Sign out
+              </button>
+            </div>
             <div className="switch-head">
-              Signed in as <strong>{user.email || user.name}</strong>. Viewing the app as
-              another staff member changes what you see — it doesn&rsquo;t change who
-              you&rsquo;re signed in as.
+              Viewing the app as another staff member changes what you see — it
+              doesn&rsquo;t change who you&rsquo;re signed in as.
             </div>
             <button
               className="add-row"
@@ -75,16 +89,7 @@ function RoleSwitcher() {
             >
               <i className="ti ti-refresh" /> Reset demo data
             </button>
-            <button
-              className="add-row"
-              style={{ color: 'var(--text-3)' }}
-              onClick={() => {
-                setOpen(false);
-                void signOut();
-              }}
-            >
-              <i className="ti ti-logout" /> Sign out
-            </button>
+
           </div>
         </div>
       )}

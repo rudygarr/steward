@@ -1,7 +1,13 @@
-// WCS Spaces service worker — makes the app installable and gives it an offline
+// Steward service worker — makes the app installable and gives it an offline
 // shell. Deliberately network-first so the frequently-redeployed demo never
 // serves a stale build; the cache is only a fallback when offline.
-const CACHE = 'wcs-spaces-v2';
+//
+// Bump CACHE on any release that must not be served from an old cache. The
+// activate handler deletes every cache that isn't the current name, so a bump
+// is what evicts a stale shell from browsers that already installed the app.
+// v3: the wcs-spaces -> steward rename + real Entra sign-in. An old cached
+// shell here still has the fake demo gate, which lets someone straight in.
+const CACHE = 'steward-v3';
 
 self.addEventListener('install', (event) => {
   // Cache the app shell so a cold offline launch still boots.
