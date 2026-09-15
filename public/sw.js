@@ -7,7 +7,8 @@
 // is what evicts a stale shell from browsers that already installed the app.
 // v3: the wcs-spaces -> steward rename + real Entra sign-in. An old cached
 // shell here still has the fake demo gate, which lets someone straight in.
-const CACHE = 'steward-v3';
+// v4: evict any shell poisoned by auth.html before it was excluded below.
+const CACHE = 'steward-v4';
 
 self.addEventListener('install', (event) => {
   // Cache the app shell so a cold offline launch still boots.
@@ -27,6 +28,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
+  // The Microsoft sign-in bridge (auth.html) is not the app: it must always
+  // come from the network, and must never be stored as the app shell — the
+  // navigation handler below caches whatever it fetches as './index.html',
+  // which would leave "Signing you in..." as the offline Steward.
+  if (new URL(req.url).pathname.endsWith('/auth.html')) return;
 
   // SPA navigations (HashRouter) → network first, fall back to cached shell.
   if (req.mode === 'navigate') {
