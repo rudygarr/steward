@@ -27,6 +27,37 @@ export interface MsUser {
   email: string;
 }
 
+export interface School {
+  id: string;
+  slug: string;
+  name: string;
+  modules: Record<string, boolean>;
+}
+
+/**
+ * The school this account belongs to. Membership is granted by email domain
+ * when the account is first created (see the handle_new_user trigger), so a
+ * new member of staff signs in and is simply in the right place.
+ *
+ * Null means authenticated but unplaced — a real state worth showing rather
+ * than an empty app: someone signed in from a domain no school has claimed.
+ */
+export async function currentSchool(): Promise<School | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('schools')
+    .select('id, slug, name, modules')
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    id: data.id as string,
+    slug: data.slug as string,
+    name: data.name as string,
+    modules: (data.modules ?? {}) as Record<string, boolean>,
+  };
+}
+
 function toUser(user: {
   email?: string;
   user_metadata?: Record<string, unknown>;

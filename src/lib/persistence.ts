@@ -137,7 +137,12 @@ async function flush(next: Database): Promise<void> {
     const nextIds = new Set(nextList.map((e) => e.id));
     const removed = prevList.filter((e) => !nextIds.has(e.id)).map((e) => e.id);
 
-    if (upserts.length) work.push(Promise.resolve(supabase.from(table).upsert(upserts)));
+    // (school_id, id) is the key now: two schools each have a "room-1".
+    // school_id itself is filled by the column default from the caller's
+    // membership, so nothing here has to know about tenancy.
+    if (upserts.length) {
+      work.push(Promise.resolve(supabase.from(table).upsert(upserts, { onConflict: 'school_id,id' })));
+    }
     if (removed.length) work.push(Promise.resolve(supabase.from(table).delete().in('id', removed)));
   }
 

@@ -4,9 +4,12 @@ import { setAuditActor } from './store';
 import {
   authConfigured,
   currentUser,
+  currentSchool,
   signInWithMicrosoft,
   signOutFromMicrosoft,
+  type School,
 } from './auth';
+import { moduleEnabled } from './modules';
 import type { PersonRec } from './types';
 
 // Sign-in is Microsoft Entra ID SSO via Supabase (see lib/auth). The "view as"
@@ -27,6 +30,10 @@ interface SessionCtx {
   authError: string | null;
   /** False until Supabase + the Entra app registration are wired up. */
   configured: boolean;
+  /** The school this account belongs to, once loaded. */
+  school: School | null;
+  /** Is a module switched on here? Unknown modules are off. */
+  hasModule: (key: string) => boolean;
 }
 
 const Ctx = createContext<SessionCtx | null>(null);
@@ -67,11 +74,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  const [school, setSchool] = useState<School | null>(null);
+
   const adopt = (ms: { name: string; email: string }) => {
     const p = personFor(ms);
     setAuditActor(p.name);
     setUser(p);
     setAuthed(true);
+    // Which school, and which modules it runs. Row-level security means an
+    // account only ever sees its own.
+    void currentSchool().then(setSchool);
   };
 
   // Restore an existing Microsoft session so a refresh doesn't re-prompt.
@@ -127,6 +139,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await signOutFromMicrosoft();
     setAuthed(false);
     setUser(defaultUser);
+    setSchool(null);
   };
 
   return (
@@ -140,6 +153,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         signingIn,
         authError,
         configured: authConfigured,
+        school,
+        hasModule: (key: string) => moduleEnabled(school?.modules, key),
       }}
     >
       {children}
