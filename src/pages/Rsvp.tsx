@@ -14,14 +14,16 @@ import type { InviteStatus } from '../lib/types';
 // invite and only the fields rendered below.
 export default function Rsvp() {
   const { id } = useParams();
-  const [state, setState] = useState<'loading' | 'ready' | 'gone'>('loading');
+  // A link with no id is already dead, so start there rather than setting
+  // state synchronously inside the effect.
+  const [state, setState] = useState<'loading' | 'ready' | 'gone'>(id ? 'loading' : 'gone');
   const [data, setData] = useState<RsvpPayload | null>(null);
   const [done, setDone] = useState<InviteStatus | null>(null);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (!id) return setState('gone');
+    if (!id) return;
     let cancelled = false;
     void fetchInvite(id).then((payload) => {
       if (cancelled) return;
