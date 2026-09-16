@@ -170,13 +170,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadDB().then((saved) => {
-      // Discard a saved DB from an older seed so new demo data shows up.
-      const fresh = !saved || saved.seedVersion !== SEED_VERSION;
-      if (fresh) {
+      // The database is shared now, so only seed when it is genuinely empty.
+      // (It used to reseed whenever SEED_VERSION moved, which was harmless
+      // per-browser but here would let whoever loaded first wipe everyone
+      // else's work. Use "Reset demo data" to reseed on purpose.)
+      if (!saved) {
         const seed = buildSeed();
         setDb(seed);
         void saveDB(seed);
       } else {
+        if (saved.seedVersion !== SEED_VERSION) {
+          console.info(
+            `[steward] shared data is at seed v${saved.seedVersion}, app expects v${SEED_VERSION}. ` +
+              'Keeping the live data — use "Reset demo data" to reseed.',
+          );
+        }
         setDb(saved);
       }
     });

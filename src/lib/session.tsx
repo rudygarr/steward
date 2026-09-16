@@ -2,14 +2,14 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { buildSeed } from './seed';
 import { setAuditActor } from './store';
 import {
-  msalConfigured,
+  authConfigured,
   currentUser,
   signInWithMicrosoft,
   signOutFromMicrosoft,
-} from './msal';
+} from './auth';
 import type { PersonRec } from './types';
 
-// Sign-in is real Microsoft Entra ID SSO (see lib/msal). The "view as"
+// Sign-in is Microsoft Entra ID SSO via Supabase (see lib/auth). The "view as"
 // switcher below is a separate thing: it re-renders the app through another
 // staff member's permissions for testing, and never grants access — you have
 // to be signed in as a WCS account before you can reach it at all.
@@ -25,7 +25,7 @@ interface SessionCtx {
   signingIn: boolean;
   /** Set when sign-in failed, for display on the splash. */
   authError: string | null;
-  /** False until an Entra app registration is wired up. */
+  /** False until Supabase + the Entra app registration are wired up. */
   configured: boolean;
 }
 
@@ -139,7 +139,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         signOut,
         signingIn,
         authError,
-        configured: msalConfigured,
+        configured: authConfigured,
       }}
     >
       {children}

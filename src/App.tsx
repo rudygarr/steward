@@ -42,16 +42,19 @@ function Gate() {
   // outside the auth gate; an external guest lands here straight from email.
   if (typeof window !== 'undefined' && window.location.hash.startsWith('#/rsvp/')) {
     return (
-      <HashRouter>
-        <Routes>
-          <Route path="/rsvp/:id" element={<Rsvp />} />
-          <Route path="*" element={<Rsvp />} />
-        </Routes>
-      </HashRouter>
+      <StoreProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/rsvp/:id" element={<Rsvp />} />
+            <Route path="*" element={<Rsvp />} />
+          </Routes>
+        </HashRouter>
+      </StoreProvider>
     );
   }
   if (!authed) return <Login />;
   return (
+    <StoreProvider>
     <HashRouter>
       <Shell>
         <Routes>
@@ -88,15 +91,19 @@ function Gate() {
         </Routes>
       </Shell>
     </HashRouter>
+    </StoreProvider>
   );
 }
 
 export default function App() {
+  // SessionProvider is OUTSIDE the store on purpose: the data now lives in
+  // Supabase behind row-level security, so nothing can be read until someone
+  // is signed in. Mounting the store first would fire loadDB() as an
+  // anonymous caller, get nothing back, and seed a fresh database over the
+  // shared one.
   return (
-    <StoreProvider>
-      <SessionProvider>
-        <Gate />
-      </SessionProvider>
-    </StoreProvider>
+    <SessionProvider>
+      <Gate />
+    </SessionProvider>
   );
 }
