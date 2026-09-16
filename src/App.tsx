@@ -41,15 +41,15 @@ function Gate() {
   // Public RSVP link — the emailed invite for guests without an account. Lives
   // outside the auth gate; an external guest lands here straight from email.
   if (typeof window !== 'undefined' && window.location.hash.startsWith('#/rsvp/')) {
+    // No StoreProvider: this page reads the public RSVP endpoint, not the
+    // database, precisely because a guest has no account to get past RLS.
     return (
-      <StoreProvider>
-        <HashRouter>
-          <Routes>
-            <Route path="/rsvp/:id" element={<Rsvp />} />
-            <Route path="*" element={<Rsvp />} />
-          </Routes>
-        </HashRouter>
-      </StoreProvider>
+      <HashRouter>
+        <Routes>
+          <Route path="/rsvp/:id" element={<Rsvp />} />
+          <Route path="*" element={<Rsvp />} />
+        </Routes>
+      </HashRouter>
     );
   }
   if (!authed) return <Login />;
