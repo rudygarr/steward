@@ -7,13 +7,15 @@ import './index.css'
  *  2. Microsoft's sign-in popup, which redirects back to this same URL with
  *     the auth response in it.
  *
- * They share a URL because the redirect URI has to be one Entra already
- * trusts, and this one is it. In the popup we must NOT mount the app — it
- * routes with HashRouter, which owns the fragment the response arrives in.
- * Instead we run MSAL's redirect bridge, which broadcasts the response to the
- * window that opened the popup and closes it.
+ * Sign-in is a full-page redirect, so case 2 is normally THIS window coming
+ * back from Microsoft: we let MSAL consume the response before mounting,
+ * because HashRouter would otherwise take ownership of the fragment first.
  *
- * Both branches are dynamic imports, so the popup pulls in a few KB of bridge
+ * MSAL also renews tokens silently in a hidden iframe, which loads this same
+ * URL. There we must not mount the app at all — we run MSAL's redirect
+ * bridge, which hands the response back and tears the frame down.
+ *
+ * Both branches are dynamic imports, so those transient loads pull a few KB
  * rather than the whole application.
  */
 const hasAuthResponse = /[#&?](code|error|state|id_token|access_token)=/.test(
@@ -31,6 +33,13 @@ if (hasAuthResponse && (inPopup || inIframe)) {
       'Sign-in could not be completed. Close this window and try again.</p>'
   })
 } else {
+  // Coming back from a redirect sign-in, let MSAL consume the response from
+  // the URL before the app — and therefore HashRouter — mounts.
+  if (hasAuthResponse) {
+    const { msalReady } = await import('./lib/msal')
+    await msalReady().catch((e: unknown) => console.error('[steward] sign-in failed', e))
+  }
+
   const [{ StrictMode }, { createRoot }, { default: App }] = await Promise.all([
     import('react'),
     import('react-dom/client'),

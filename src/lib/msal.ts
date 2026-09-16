@@ -15,11 +15,15 @@ import {
  *  the bundle by design, which is why they're build-time `vars`, not
  *  repository secrets.
  *
- *  We use the POPUP flow with a dedicated redirect page (auth.html). The app
- *  routes with HashRouter, which owns the URL fragment the auth response
- *  arrives in, so the response must never land on an app page. auth.html
- *  runs MSAL's redirect bridge, which broadcasts the response back here over
- *  a BroadcastChannel and closes the popup.
+ *  We use the REDIRECT flow, not a popup. A popup depends on the browser
+ *  allowing it and on window.opener surviving — neither held up in practice,
+ *  and a blocked popup is indistinguishable from nothing happening. A
+ *  redirect navigates the whole tab to Microsoft and back, so there is no
+ *  popup blocker, no opener, and it works in an installed PWA window.
+ *
+ *  Coming back, the response rides in the URL fragment — which HashRouter
+ *  also owns. handleRedirectPromise() below runs during init, before any
+ *  router mounts, so MSAL consumes the response first.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -51,11 +55,26 @@ const msal = msalConfigured
   : null;
 
 let ready: Promise<void> | null = null;
-/** MSAL v3+ must be initialized before any other call. Runs once. */
+/**
+ * MSAL v3+ must be initialized before any other call. Runs once, and also
+ * completes a redirect sign-in if this load is the trip back from Microsoft.
+ */
 function init(): Promise<void> {
   if (!msal) return Promise.resolve();
-  ready ??= msal.initialize();
+  ready ??= msal.initialize().then(async () => {
+    const result = await msal!.handleRedirectPromise();
+    if (result?.account) msal!.setActiveAccount(result.account);
+  });
   return ready;
+}
+
+/**
+ * Await MSAL startup — which includes consuming a redirect response if this
+ * load is the trip back from Microsoft. The app awaits this before mounting,
+ * so MSAL reads the URL fragment before HashRouter takes ownership of it.
+ */
+export function msalReady(): Promise<void> {
+  return init();
 }
 
 export interface MsUser {
@@ -83,12 +102,17 @@ export async function currentUser(): Promise<MsUser | null> {
 
 const SCOPES = ['openid', 'profile', 'User.Read'];
 
-export async function signInWithMicrosoft(): Promise<MsUser> {
+/**
+ * Starts sign-in. Either returns an already-valid session, or navigates this
+ * tab to Microsoft — in which case the returned promise never settles, because
+ * the page is going away. The account is picked up by init() on the way back.
+ */
+export async function signInWithMicrosoft(): Promise<MsUser | null> {
   if (!msal) throw new Error('Microsoft sign-in is not configured yet.');
   await init();
 
-  // Silent first: an already-signed-in staff member shouldn't see a popup.
-  // Any failure here only means we need the popup — it is never fatal.
+  // Silent first: an already-signed-in staff member shouldn't leave the page.
+  // Any failure here only means we need the full redirect — never fatal.
   const [existing] = msal.getAllAccounts();
   if (existing) {
     try {
@@ -96,35 +120,28 @@ export async function signInWithMicrosoft(): Promise<MsUser> {
       msal.setActiveAccount(existing);
       return toUser(existing);
     } catch {
-      // fall through to the popup
+      // fall through to the redirect
     }
   }
 
   try {
-    return await popupSignIn();
+    await msal.loginRedirect({ scopes: SCOPES, prompt: 'select_account' });
   } catch (e) {
-    // A sign-in abandoned part-way — a closed popup, or one of the redirect-URI
-    // failures — leaves MSAL's "interaction in progress" flag set, and that
-    // flag then blocks every later attempt with no way out from the UI. Clear
-    // it once and retry, rather than asking someone to wipe site data.
+    // A sign-in abandoned part-way leaves MSAL's "interaction in progress"
+    // flag set in storage, and that flag then blocks every later attempt with
+    // no way out from the UI. Clear it and retry rather than asking someone
+    // to wipe site data.
     if (
       e instanceof BrowserAuthError &&
       e.errorCode === BrowserAuthErrorCodes.interactionInProgress
     ) {
-      return await popupSignIn(true);
+      msal.clearCache();
+      await msal.loginRedirect({ scopes: SCOPES, prompt: 'select_account' });
+    } else {
+      throw e;
     }
-    throw e;
   }
-}
-
-async function popupSignIn(overrideInteractionInProgress = false): Promise<MsUser> {
-  const result = await msal!.loginPopup({
-    scopes: SCOPES,
-    prompt: 'select_account',
-    ...(overrideInteractionInProgress ? { overrideInteractionInProgress: true } : {}),
-  });
-  msal!.setActiveAccount(result.account);
-  return toUser(result.account);
+  return null; // navigating away
 }
 
 export async function signOutFromMicrosoft(): Promise<void> {
@@ -132,6 +149,5 @@ export async function signOutFromMicrosoft(): Promise<void> {
   await init();
   const account = msal.getActiveAccount() ?? msal.getAllAccounts()[0];
   if (!account) return;
-  // popup, not redirect: same HashRouter reason as sign-in.
-  await msal.logoutPopup({ account });
+  await msal.logoutRedirect({ account });
 }

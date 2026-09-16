@@ -94,7 +94,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAuthError(null);
     setSigningIn(true);
     try {
-      adopt(await signInWithMicrosoft());
+      // Either we already had a valid session, or the tab is now navigating
+      // to Microsoft and this page is on its way out.
+      const ms = await signInWithMicrosoft();
+      if (ms) adopt(ms);
     } catch (e) {
       // Always log the whole thing — a generic on-screen message with the real
       // cause swallowed makes a sign-in failure impossible to diagnose.
@@ -107,9 +110,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (/user_cancelled|user_canceled/i.test(msg)) {
         // Closing the popup is a choice, not an error worth shouting about.
         setAuthError(null);
-      } else if (/popup_window_error|empty_window_error|popup.*block/i.test(msg)) {
-        // A blocked popup looks identical to nothing happening, so name it.
-        setAuthError('Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.');
       } else {
         // Show the identifying code: AADSTS50011 and friends say precisely
         // what's misconfigured, and "please try again" alone never will.
