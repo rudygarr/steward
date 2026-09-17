@@ -1,570 +1,452 @@
 /* ─────────────────────────────────────────────────────────────────────────
- *  STEWARD — MATERIAL SYSTEM
+ *  STEWARD — THE DAY RAIL
  * ─────────────────────────────────────────────────────────────────────────
- *  Loaded after App.css and deliberately overrides it, so the whole app is
- *  restyled through the class names the 30-odd pages already use rather than
- *  editing each one.
+ *  Loaded after App.css and overriding it, so the language reaches all 30-odd
+ *  pages through the class names they already use.
  *
- *  The idea is Apple's Liquid Glass: surfaces behave like real material.
- *  Light collects on a top edge, the panel floats on its own shadow, and what
- *  is behind it shows through blurred and slightly over-saturated. Depth is
- *  what creates hierarchy here — not borders, and not more colour.
+ *  The position: this is an operations app, and the job is *when* and *where*.
+ *  So time is the layout, not a field inside a card. Hierarchy comes from
+ *  typography and rhythm; gold is reserved for the one thing that needs a
+ *  decision. No card grid, no glass chrome, no tinted status confetti — those
+ *  flatten everything to the same weight, which is the opposite of what
+ *  someone running a campus needs.
  * ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Continuous, generous corners. Small radii read as "web form". */
-  --r-sm: 12px;
-  --r-md: 16px;
-  --r-lg: 22px;
-  --r-xl: 30px;
+  --ink: #e8ece9;
+  --ink-2: #a0b2a7;
+  --ink-3: #6f8478;
+  --ground: #0b1410;
+  --ground-2: #101b15;
+  --line: #1a2a21;
+  --line-2: #24382c;
+  --gold: #c3945d;
+  --gold-soft: rgba(195, 148, 93, 0.16);
 
-  /* Glass. Two levels: content sits on 1, chrome floats on 2. */
-  --glass-1: rgba(255, 255, 255, 0.72);
-  --glass-2: rgba(255, 255, 255, 0.82);
-  --glass-blur: saturate(180%) blur(24px);
-  --glass-blur-strong: saturate(190%) blur(36px);
+  --font-ui: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
-  /* The specular rim: light catching a top edge, shade on the bottom. */
-  --rim: inset 0 1px 0 rgba(255, 255, 255, 0.9),
-         inset 0 -1px 0 rgba(0, 0, 0, 0.04);
-  --hairline: rgba(0, 0, 0, 0.07);
+  --r-sm: 8px;
+  --r-md: 11px;
+  --r-lg: 14px;
+  --r-xl: 18px;
 
-  /* Elevation: a tight contact shadow plus a wide ambient one. */
-  --e1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 18px -8px rgba(0, 0, 0, 0.16);
-  --e2: 0 2px 4px rgba(0, 0, 0, 0.06), 0 14px 34px -12px rgba(0, 0, 0, 0.24);
-  --e3: 0 4px 8px rgba(0, 0, 0, 0.08), 0 28px 60px -18px rgba(0, 0, 0, 0.32);
-
-  --accent: linear-gradient(150deg,
-    color-mix(in srgb, var(--green) 88%, white) 0%,
-    var(--green) 55%,
-    color-mix(in srgb, var(--green) 86%, black) 100%);
-  --accent-glow: 0 6px 20px -6px color-mix(in srgb, var(--green) 55%, transparent);
-
-  /* One spring, used everywhere, so the whole app moves the same way. */
-  --spring: cubic-bezier(0.2, 0.9, 0.24, 1);
-  --fast: 0.16s var(--spring);
-  --med: 0.28s var(--spring);
+  --ease: cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Lifted off pure black: glass needs something to be lit against. */
-    --bg: #0b0b0d;
-    --surface: #17171a;
-    --surface-2: #202024;
-
-    --glass-1: rgba(32, 32, 38, 0.66);
-    --glass-2: rgba(22, 22, 27, 0.78);
-
-    --rim: inset 0 1px 0 rgba(255, 255, 255, 0.1),
-           inset 0 -1px 0 rgba(0, 0, 0, 0.3);
-    --hairline: rgba(255, 255, 255, 0.08);
-
-    --e1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 18px -8px rgba(0, 0, 0, 0.6);
-    --e2: 0 2px 6px rgba(0, 0, 0, 0.55), 0 16px 38px -12px rgba(0, 0, 0, 0.7);
-    --e3: 0 6px 12px rgba(0, 0, 0, 0.6), 0 30px 64px -18px rgba(0, 0, 0, 0.8);
+    --bg: var(--ground);
+    --surface: var(--ground-2);
+    --surface-2: #16241c;
+    --text-1: var(--ink);
+    --text-2: var(--ink-2);
+    --text-3: var(--ink-3);
+    --border: var(--line);
+    --border-2: var(--line-2);
+    --green: #6f9d7c;
+  }
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink: #16241c;
+    --ink-2: #4a5d50;
+    --ink-3: #75857a;
+    --ground: #f6f4ee;
+    --ground-2: #ffffff;
+    --line: #e0ddd2;
+    --line-2: #cfcbbd;
+    --bg: var(--ground);
+    --surface: var(--ground-2);
+    --text-1: var(--ink);
+    --text-2: var(--ink-2);
+    --text-3: var(--ink-3);
+    --border: var(--line);
+    --border-2: var(--line-2);
   }
 }
 
-/* A quiet wash of brand colour so the background isn't dead flat. */
 body {
-  background:
-    radial-gradient(1100px 620px at 12% -8%,
-      color-mix(in srgb, var(--green) 14%, transparent) 0%, transparent 62%),
-    radial-gradient(900px 520px at 92% 4%,
-      color-mix(in srgb, var(--gold) 10%, transparent) 0%, transparent 58%),
-    var(--bg);
-  background-attachment: fixed;
+  background: var(--ground);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
 }
+.app { padding-bottom: 92px; }
 
-/* ── Chrome ────────────────────────────────────────────────────────────── */
+/* ── Chrome: quiet, so the day is the loudest thing ─────────────────────── */
 
 .topbar {
-  background: var(--glass-2);
-  backdrop-filter: var(--glass-blur-strong);
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-  border-bottom: 1px solid var(--hairline);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
 }
-.topbar-inner { padding: 13px 18px; }
-
 .brand-name {
-  font-family: var(--font-brand);
-  letter-spacing: 0.14em;
-  font-weight: 700;
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
 }
+.brand-mark { width: 24px; height: 24px; }
 
-/* The tab bar floats as its own object rather than sitting in a slab. */
-.tabbar {
+.bell, .userchip {
   background: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-top: none;
-  padding: 0 14px calc(12px + env(safe-area-inset-bottom));
-  pointer-events: none;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-2);
+  transition: border-color 0.16s var(--ease);
 }
-.tabbar-inner {
-  pointer-events: auto;
-  background: var(--glass-2);
-  backdrop-filter: var(--glass-blur-strong);
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-xl);
-  box-shadow: var(--e2), var(--rim);
-  padding: 7px 6px;
-  max-width: 560px;
+.bell:hover, .userchip:hover { border-color: var(--ink-3); }
+.avatar { background: #1d3326; color: var(--gold); font-weight: 600; }
+
+/* Nav is type, not a floating slab of glass competing with the content. */
+.tabbar {
+  background: color-mix(in srgb, var(--ground) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
 }
+.tabbar-inner { padding: 4px 8px calc(6px + env(safe-area-inset-bottom)); }
 .tab {
+  font-family: var(--font-num);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  gap: 7px;
+  padding: 11px 2px 9px;
   position: relative;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 550;
-  letter-spacing: 0.01em;
-  padding: 7px 2px;
-  border-radius: 16px;
-  transition: color var(--fast), transform var(--fast);
+  transition: color 0.16s var(--ease);
 }
-.tab i { font-size: 21px; transition: transform var(--med); }
-.tab:active { transform: scale(0.93); }
-/* The active lozenge sits behind the label as its own pane of glass. */
-.tab.active::before {
+.tab i { font-size: 19px; }
+.tab.active { color: var(--ink); }
+/* One gold tick. That is the whole selected state. */
+.tab.active::after {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--green) 16%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-.tab.active i { transform: translateY(-1px) scale(1.06); }
-.tab > * { position: relative; }
-
-/* ── Surfaces ──────────────────────────────────────────────────────────── */
-
-.list,
-.ins-card,
-.banner {
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e1), var(--rim);
+  bottom: 2px;
+  width: 14px;
+  height: 2px;
+  background: var(--gold);
 }
 
-.row {
-  padding: 14px 16px;
-  transition: background var(--fast);
-}
-.row:active { background: color-mix(in srgb, var(--text-1) 6%, transparent); }
-.divider { background: var(--hairline); height: 1px; border: none; }
-.chev { color: var(--text-3); transition: transform var(--fast); }
-.row:hover .chev { transform: translateX(2px); }
+/* ── The day's header ───────────────────────────────────────────────────── */
 
-/* ── Buttons ───────────────────────────────────────────────────────────── */
-/* Layered like a real control: gradient body, light on the top edge, its own
-   shadow, and a press that actually depresses. */
+.day-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+.day-line { display: flex; align-items: baseline; gap: 11px; }
+.day-weekday {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  margin: 0;
+  color: var(--ink);
+}
+.day-date {
+  font-family: var(--font-num);
+  font-size: 14px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.day-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.stat {
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  cursor: pointer;
+  min-height: 30px;
+}
+.stat-n {
+  font-family: var(--font-num);
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.stat-l { font-size: 12.5px; color: var(--ink-3); }
+.stat.is-alert .stat-n { color: var(--gold); }
+.stat:hover .stat-l { color: var(--ink-2); }
+
+/* ── The rail ───────────────────────────────────────────────────────────── */
+
+.rail {
+  position: relative;
+  margin: 0 0 30px;
+}
+/* The spine: one continuous measure, fading at both ends so it reads as a
+   section of a longer day rather than a box. */
+.rail-spine {
+  position: absolute;
+  left: 51px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line-2) 7%, var(--line-2) 88%, transparent);
+}
+.rail-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 22px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0 0 20px;
+  color: inherit;
+  font: inherit;
+}
+.rail-row-btn { cursor: pointer; }
+.rail-row-btn:hover .rail-title { color: var(--gold); }
+.rail-row.is-past { opacity: 0.42; }
+.rail-time {
+  font-family: var(--font-num);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: right;
+  padding-top: 3px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.rail-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.rail-title {
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  transition: color 0.16s var(--ease);
+}
+.rail-title-btn {
+  background: none; border: none; padding: 0; text-align: left; font: inherit;
+  font-size: 16.5px; font-weight: 600; cursor: pointer; color: var(--ink);
+}
+.rail-sub { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
+.rail-emph { color: var(--ink-2); }
+.rail-empty { padding: 26px 0 26px 62px; color: var(--ink-3); font-size: 14px; }
+
+/* A clash is the one thing that gets gold, and it is answered in place. */
+.rail-row-clash .rail-body {
+  border-left: 2px solid var(--gold);
+  margin-left: -23px;
+  padding-left: 21px;
+  gap: 7px;
+}
+.rail-flag {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--gold);
+  font-family: var(--font-num);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.rail-acts { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+.rail-act {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-2);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.16s var(--ease), color 0.16s var(--ease);
+}
+.rail-act:hover { border-color: var(--ink-3); color: var(--ink); }
+.rail-act-primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #1a1208;
+  font-weight: 600;
+}
+.rail-act-primary:hover { background: #d3a771; border-color: #d3a771; color: #1a1208; }
+
+/* Now: a live rule across the day. The app's pulse. */
+.rail-now {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 22px;
+  align-items: center;
+  padding: 2px 0 18px;
+}
+.rail-now-time {
+  color: var(--gold);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding-top: 0;
+}
+.rail-now-line {
+  display: flex;
+  align-items: center;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold), transparent 88%);
+  position: relative;
+}
+.rail-now-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  margin-left: -3.5px;
+  box-shadow: 0 0 0 4px var(--gold-soft);
+}
+
+/* ── Everything else: hairlines and rhythm, not stacked boxes ───────────── */
+
+.list {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+.row { padding: 14px 0; }
+.divider { background: var(--line); height: 1px; border: none; }
+.chev { color: var(--ink-3); }
+
+.section-label {
+  font-family: var(--font-num);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.page-h {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  line-height: 1.05;
+}
+.page-sub { color: var(--ink-3); }
+.title { font-weight: 500; letter-spacing: -0.012em; }
+
+/* Numerals are data: give them the mono face wherever they carry meaning. */
+.pill, .seg button, .stat-n, .rail-time, .day-date {
+  font-variant-numeric: tabular-nums;
+}
+.pill {
+  font-family: var(--font-num);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-weight: 500;
+}
 
 .btn-soft {
-  position: relative;
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 9px 17px;
-  font-size: 14px;
-  font-weight: 550;
-  letter-spacing: -0.01em;
-  box-shadow: var(--e1), var(--rim);
-  transition: transform var(--fast), box-shadow var(--fast), background var(--fast);
-  cursor: pointer;
+  background: none;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  min-height: 44px;
+  transition: border-color 0.16s var(--ease), color 0.16s var(--ease);
 }
-.btn-soft:hover { transform: translateY(-1px); box-shadow: var(--e2), var(--rim); }
-.btn-soft:active { transform: translateY(0) scale(0.97); box-shadow: var(--e1), var(--rim); }
-.btn-soft:disabled { opacity: 0.45; transform: none; box-shadow: var(--e1); cursor: not-allowed; }
-
-/* The floating action button is the one true accent on a screen. */
-.fab {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 999px;
-  padding: 12px 20px;
-  font-size: 15px;
+.btn-soft:hover { border-color: var(--ink-3); color: var(--ink); }
+.btn-soft.primary, .fab {
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: #1a1208;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  box-shadow: var(--e2), var(--accent-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.28),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.18);
-  transition: transform var(--fast), box-shadow var(--fast);
-  cursor: pointer;
 }
-.fab:hover { transform: translateY(-1.5px); box-shadow: var(--e3), var(--accent-glow); }
-.fab:active { transform: scale(0.96); }
+.btn-soft.primary:hover, .fab:hover { background: #d3a771; border-color: #d3a771; }
 
-.signin-btn {
-  background: var(--accent);
-  border: none;
-  border-radius: 999px;
-  padding: 15px 30px;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #fff;
-  box-shadow: var(--e2), var(--accent-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-  transition: transform var(--fast), box-shadow var(--fast);
+.seg {
+  background: none;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  padding: 2px;
 }
-.signin-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--e3), var(--accent-glow); }
-.signin-btn:active:not(:disabled) { transform: scale(0.97); }
-
-/* ── Shortcut tiles ────────────────────────────────────────────────────── */
-/* These are the first thing anyone touches, so they get the most craft: a
-   pane of glass each, a gradient icon chip that glows in its own hue, and a
-   press that reads as physical. Auto-fit so a fifth tile never orphans. */
-
-.tiles {
-  grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
-  gap: 10px;
-}
-.tile {
-  position: relative;
-  padding: 16px 8px 13px;
-  border-radius: var(--r-lg);
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--hairline);
-  box-shadow: var(--e1), var(--rim);
-  gap: 11px;
-  overflow: hidden;
-  transition: transform var(--med), box-shadow var(--med);
-  cursor: pointer;
-}
-/* A sheen across the top third, as light would fall on curved glass. */
-.tile::after {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 52%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
-  pointer-events: none;
-}
-.tile:hover { transform: translateY(-3px); box-shadow: var(--e2), var(--rim); }
-.tile:active { transform: translateY(0) scale(0.96); box-shadow: var(--e1), var(--rim); }
-
-.tile .tile-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 15px;
-  font-size: 21px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
-              0 6px 14px -6px currentColor;
-  transition: transform var(--med);
-}
-.tile:hover .tile-icon { transform: scale(1.07) rotate(-2deg); }
-.tile-label {
-  font-size: 12.5px;
-  font-weight: 560;
-  letter-spacing: -0.005em;
-  color: var(--text-2);
-}
-
-/* Give each door its own material rather than a flat tint. */
-.t-book   { background: linear-gradient(145deg, color-mix(in srgb, var(--info) 26%, transparent), color-mix(in srgb, var(--info) 12%, transparent)); color: var(--info); }
-.t-maint  { background: linear-gradient(145deg, color-mix(in srgb, var(--warn) 26%, transparent), color-mix(in srgb, var(--warn) 12%, transparent)); color: var(--warn); }
-.t-it     { background: linear-gradient(145deg, color-mix(in srgb, var(--text-1) 16%, transparent), color-mix(in srgb, var(--text-1) 7%, transparent)); color: var(--text-1); }
-.t-visit  { background: linear-gradient(145deg, color-mix(in srgb, var(--ok) 26%, transparent), color-mix(in srgb, var(--ok) 12%, transparent)); color: var(--ok); }
-.t-ath    { background: linear-gradient(145deg, color-mix(in srgb, var(--gold) 30%, transparent), color-mix(in srgb, var(--gold) 14%, transparent)); color: var(--gold); }
-.t-rental { background: linear-gradient(145deg, color-mix(in srgb, var(--green) 28%, transparent), color-mix(in srgb, var(--green) 13%, transparent)); color: var(--green); }
-
-/* ── Type ──────────────────────────────────────────────────────────────── */
-
-.page-h {
-  font-size: 30px;
-  font-weight: 680;
-  letter-spacing: -0.028em;
-  line-height: 1.12;
-}
-.page-sub { color: var(--text-3); letter-spacing: -0.005em; }
-.section-label {
-  font-size: 11.5px;
-  font-weight: 640;
-  letter-spacing: 0.07em;
+.seg button {
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-3);
-}
-.title { font-weight: 570; letter-spacing: -0.012em; }
-
-/* ── Small parts ───────────────────────────────────────────────────────── */
-
-.pill {
-  border-radius: 999px;
-  font-weight: 580;
-  letter-spacing: 0.005em;
-  padding: 3.5px 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
-}
-.avatar {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 620;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), var(--e1);
-}
-.userchip {
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 5px 5px 5px 13px;
-  box-shadow: var(--e1), var(--rim);
-  transition: transform var(--fast);
-}
-.userchip:active { transform: scale(0.96); }
-.bell {
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  box-shadow: var(--e1), var(--rim);
-  transition: transform var(--fast);
-}
-.bell:active { transform: scale(0.92); }
-
-/* Sheets and dialogs are the most prominent glass in the app. */
-.switch-panel,
-.modal,
-.sheet {
-  background: var(--glass-2);
-  backdrop-filter: var(--glass-blur-strong);
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-xl);
-  box-shadow: var(--e3), var(--rim);
-}
-.switch-backdrop,
-.modal-backdrop {
-  background: color-mix(in srgb, var(--bg) 55%, transparent);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-}
-
-/* ── Accessibility ─────────────────────────────────────────────────────── */
-
-:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--green) 75%, white);
-  outline-offset: 2px;
+  padding: 9px 14px;
   border-radius: 8px;
+  color: var(--ink-3);
+  min-height: 40px;
 }
+.seg button.active { background: var(--line); color: var(--ink); box-shadow: none; }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-  .tile:hover,
-  .btn-soft:hover,
-  .fab:hover { transform: none; }
-}
-
-/* ── Dashboard shortcuts ───────────────────────────────────────────────── */
-/* The first thing anyone taps, and the grid that sets the tone for the whole
-   app — so these get the most attention. Each is a pane of glass carrying a
-   gradient icon chip that glows faintly in the brand green. Four across is
-   cramped on a phone; auto-fit keeps them comfortable and never orphans one
-   on a line of its own. */
-
-.sc-grid {
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 11px;
-}
-
+/* Shortcuts stay, but quietly — they are a convenience, not the headline. */
+.sc-grid { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
 .sc-tile {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 11px;
-  padding: 17px 9px 14px;
+  gap: 9px;
+  padding: 14px 6px 12px;
   border-radius: var(--r-lg);
-  background: var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--hairline);
-  box-shadow: var(--e1), var(--rim);
-  color: var(--text-1);
-  font-size: 12.5px;
-  font-weight: 560;
-  letter-spacing: -0.005em;
-  overflow: hidden;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
-  transition: transform var(--med), box-shadow var(--med), border-color var(--med);
+  min-height: 44px;
+  transition: border-color 0.16s var(--ease), color 0.16s var(--ease);
 }
-/* Light falling across the top of the pane. */
-.sc-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 54%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
-  pointer-events: none;
-}
-.sc-tile:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--e2), var(--rim);
-  border-color: color-mix(in srgb, var(--green) 32%, var(--hairline));
-  background: var(--glass-1);
-}
-.sc-tile:active { transform: translateY(0) scale(0.96); box-shadow: var(--e1), var(--rim); }
+.sc-tile:hover { border-color: var(--line-2); color: var(--ink); }
+.sc-tile .ti { font-size: 19px; color: var(--ink-2); }
+.sc-tile:hover .ti { color: var(--gold); }
+.sc-empty { border-radius: var(--r-lg); border: 1px dashed var(--line-2); }
 
-/* The icon becomes a chip in its own right, with a rim and a coloured glow. */
-.sc-tile .ti {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  font-size: 21px;
-  color: var(--green);
-  background: linear-gradient(150deg,
-    color-mix(in srgb, var(--green) 26%, transparent),
-    color-mix(in srgb, var(--green) 11%, transparent));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
-              0 6px 16px -8px color-mix(in srgb, var(--green) 70%, transparent);
-  transition: transform var(--med);
+.switch-panel, .modal, .sheet {
+  background: var(--ground-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-xl);
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.7);
 }
-.sc-tile:hover .ti { transform: scale(1.07) rotate(-2deg); }
-.sc-tile span { line-height: 1.25; color: var(--text-2); }
+.switch-backdrop, .modal-backdrop { background: rgba(4, 8, 6, 0.6); }
 
-.sc-empty {
-  border-radius: var(--r-lg);
-  border: 1.5px dashed color-mix(in srgb, var(--text-3) 40%, transparent);
-  padding: 22px;
-  transition: border-color var(--fast), color var(--fast);
-}
-.sc-empty:hover {
-  border-color: color-mix(in srgb, var(--green) 50%, transparent);
-  color: var(--green);
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
-.sc-edit {
-  font-weight: 570;
-  padding: 4px 10px;
-  border-radius: 999px;
-  transition: background var(--fast);
+/* Whose day you're looking at. A quiet control — it qualifies the rail, it
+   isn't a feature of its own. */
+.rail-scope {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
 }
-.sc-edit:hover { background: color-mix(in srgb, var(--green) 12%, transparent); }
-
-/* ── Fit and polish ────────────────────────────────────────────────────── */
-
-/* The floating tab bar needs real room beneath the content, or the last row
-   of a list sits under glass and looks clipped. */
-.app { padding-bottom: 112px; }
-
-/* Four shortcuts across on a phone. At minmax(92px) the fourth wrapped onto a
-   line of its own, which looked like a mistake rather than a layout. */
-.sc-grid { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); }
-.sc-tile { padding: 15px 6px 12px; gap: 9px; }
-.sc-tile .ti { width: 42px; height: 42px; border-radius: 13px; font-size: 20px; }
-.sc-tile span { font-size: 11.5px; }
-
-/* Chips were too dim against dark glass — the icon is the thing you aim at,
-   so it should read first. */
-@media (prefers-color-scheme: dark) {
-  .sc-tile .ti {
-    color: color-mix(in srgb, var(--green) 55%, white);
-    background: linear-gradient(150deg,
-      color-mix(in srgb, var(--green) 42%, transparent),
-      color-mix(in srgb, var(--green) 18%, transparent));
-  }
-  .tile .tile-icon { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 6px 16px -8px currentColor; }
-}
-
-/* The conflicts banner is the one alarming thing on Home. Give it the same
-   material as everything else so it belongs, but keep its amber identity and
-   let it carry a warmer edge. */
-.banner,
-.cc-card {
-  background:
-    linear-gradient(150deg,
-      color-mix(in srgb, var(--warn) 13%, transparent),
-      color-mix(in srgb, var(--warn) 5%, transparent)),
-    var(--glass-1);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e1),
-              inset 0 1px 0 color-mix(in srgb, var(--warn) 22%, transparent);
-}
-
-/* Status pills read as labels, not buttons: quieter, tighter, monospaced
-   width so a column of them lines up. */
-.pill {
-  font-size: 10.5px;
-  letter-spacing: 0.045em;
+.rail-scope button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-num);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-weight: 640;
+  color: var(--ink-3);
+  cursor: pointer;
+  min-height: 30px;
+  transition: color 0.16s var(--ease);
 }
-
-/* The tab bar's rim was reading as a hard outline rather than an edge catching
-   light. Soften the border and let the shadow do the separating. */
-.tabbar-inner {
-  border-color: rgba(255, 255, 255, 0.05);
-  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-}
-@media (prefers-color-scheme: light) {
-  .tabbar-inner {
-    border-color: rgba(0, 0, 0, 0.05);
-    box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  }
-}
-
-/* ── Segmented controls ────────────────────────────────────────────────── */
-/* A recessed glass trough with a raised, lit thumb — the selected segment
-   should look like it sits above the track, not merely tinted. */
-
-.seg {
-  background: color-mix(in srgb, var(--text-1) 7%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--hairline);
-  border-radius: 13px;
-  padding: 3px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-.seg button {
-  font-size: 13px;
-  font-weight: 550;
-  letter-spacing: -0.008em;
-  padding: 7px 15px;
-  border-radius: 10px;
-  transition: color var(--fast), background var(--fast), box-shadow var(--fast), transform var(--fast);
-}
-.seg button:active { transform: scale(0.96); }
-.seg button.active {
-  background: var(--surface);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16),
-              0 4px 10px -4px rgba(0, 0, 0, 0.24),
-              inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
-
-/* Opt-in accent for the one primary action on a screen. Add `primary` to the
-   button rather than guessing by position — a positional selector would catch
-   the wrong control the moment a page's header changes. */
-.btn-soft.primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: var(--e1), var(--accent-glow),
-              inset 0 1px 0 rgba(255, 255, 255, 0.26);
-}
-.btn-soft.primary:hover {
-  box-shadow: var(--e2), var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.26);
-}
+.rail-scope button:hover { color: var(--ink-2); }
+.rail-scope button.active { color: var(--ink); }
+.rail-scope-sep { flex: 1; height: 1px; background: var(--line); }
+.rail-scope-all { color: var(--gold) !important; }

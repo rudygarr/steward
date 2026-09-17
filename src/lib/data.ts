@@ -45,7 +45,15 @@ export function eventsOnDay<T extends WcsEvent>(list: T[], d: Date): T[] {
   const key = dayKey(d);
   return list
     .filter((e) => e.starts_at && dayKey(new Date(e.starts_at)) === key)
-    .sort((a, b) => (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) || (a.starts_at! < b.starts_at! ? -1 : 1));
+    // Compare by parsed instant, NOT by string. The seed mixes timestamp
+    // formats — "…T08:30:00-04:00" alongside "…T12:00:00Z" and
+    // "…T12:00:00.000Z" — and a lexical compare puts 2pm-with-offset before
+    // noon-in-UTC, so the day came out in the wrong order.
+    .sort(
+      (a, b) =>
+        (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) ||
+        new Date(a.starts_at!).getTime() - new Date(b.starts_at!).getTime(),
+    );
 }
 
 // The seed year runs Aug 2026–May 2027. "Today" for the demo anchors to the

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DEMO_TODAY, eventsOnDay, findConflicts, fmtTime, fmtDateLong, statusColor, isMine } from '../lib/data';
+import { DEMO_TODAY, eventsOnDay, findConflicts, fmtTime, isMine } from '../lib/data';
 import { useStore } from '../lib/store';
 import { useSession } from '../lib/session';
 import { assignedToMe, canWorkPool } from '../lib/fulfill';
@@ -16,6 +16,7 @@ import { pendingForPerson } from '../lib/crew';
 import { pendingInviteCount } from '../lib/invites';
 import { isSectionHidden } from '../lib/dashboard';
 import Shortcuts from '../components/Shortcuts';
+import DayRail, { type RailEntry } from '../components/DayRail';
 import DashboardCustomizer from '../components/DashboardCustomizer';
 
 const tiles = [
@@ -25,13 +26,6 @@ const tiles = [
   { cls: 't-ath', icon: 'ti-ball-basketball', label: 'Athletics', to: '/athletics' },
   { cls: 't-visit', icon: 'ti-id', label: 'Visitor', to: '/requests?door=visitor' },
 ];
-
-function greet(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
 
 const DEPT_META: Record<Department, { icon: string; cls: string; noun: string }> = {
   Maintenance: { icon: 'ti-tool', cls: 't-maint', noun: 'work orders' },
@@ -146,7 +140,7 @@ export default function Home() {
   const nav = useNavigate();
   const { user } = useSession();
   const { db, checkInEvent } = useStore();
-  const [view, setView] = useState<'mine' | 'school'>('mine');
+  const [view, setView] = useState<'mine' | 'school'>('school');
   const [showCustomize, setShowCustomize] = useState(false);
   // Read the live person so saved dashboard prefs are reflected (the session
   // user is a static snapshot).
@@ -183,22 +177,64 @@ export default function Home() {
     { id: 'IT', icon: 'ti-device-laptop', cls: 't-it' },
     { id: 'Transportation', icon: 'ti-bus', cls: 't-ath' },
   ];
-  const firstName = user.name.split(' ')[0];
   const needs = pendingCount + conflicts.length;
+
+  // The rail is the lead: today's events in time order, each carrying the
+  // clash it's part of so the collision is shown where it happens rather
+  // than summarised in a separate card.
+  const clashOf = new Map<string, string>();
+  for (const c of conflicts) {
+    clashOf.set(c.a.id, c.b.name);
+    clashOf.set(c.b.id, c.a.name);
+  }
+  const railEntries: RailEntry[] = shown.map((ev) => ({ ev, clashWith: clashOf.get(ev.id) }));
+  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(DEMO_TODAY);
+  const dayStamp = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short' })
+    .format(DEMO_TODAY)
+    .toUpperCase();
 
   return (
     <>
-      <div style={{ marginBottom: 26 }}>
-        <div className="eyebrow">{fmtDateLong(DEMO_TODAY)}</div>
-        <h1 className="greeting">
-          {greet()}, {firstName}
-        </h1>
-        <div className="subgreet">
-          {user.department
-            ? `${openWork(user.department)} open ${DEPT_META[user.department].noun} · ${today.length} events today`
-            : `${today.length} events today · ${pendingCount} approvals waiting`}
+      {/* The day states itself: weekday large, the count of what matters as
+          numerals. A greeting is pleasant but it isn't information. */}
+      <div className="day-head">
+        <div className="day-line">
+          <h1 className="day-weekday">{weekday}</h1>
+          <span className="day-date">{dayStamp}</span>
+        </div>
+        <div className="day-stats">
+          <button className="stat" onClick={() => nav('/calendar')}>
+            <span className="stat-n">{today.length}</span>
+            <span className="stat-l">events</span>
+          </button>
+          {liveConflicts.length > 0 && (
+            <button className="stat is-alert" onClick={() => nav('/calendar')}>
+              <span className="stat-n">{liveConflicts.length}</span>
+              <span className="stat-l">conflicts</span>
+            </button>
+          )}
+          <button className="stat" onClick={() => nav('/approvals')}>
+            <span className="stat-n">{pendingCount}</span>
+            <span className="stat-l">to approve</span>
+          </button>
         </div>
       </div>
+
+      {!isSectionHidden(prefs, 'today') && (
+        <>
+          <div className="rail-scope">
+            <button className={view === 'school' ? 'active' : ''} onClick={() => setView('school')}>
+              Whole campus
+            </button>
+            <button className={view === 'mine' ? 'active' : ''} onClick={() => setView('mine')}>
+              Yours
+            </button>
+            <span className="rail-scope-sep" />
+            <button className="rail-scope-all" onClick={() => nav('/calendar')}>Calendar</button>
+          </div>
+          <DayRail entries={railEntries} />
+        </>
+      )}
 
       <Shortcuts prefs={prefs} onCustomize={() => setShowCustomize(true)} />
 
@@ -280,62 +316,6 @@ export default function Home() {
         ))}
       </div>
 
-      {!isSectionHidden(prefs, 'today') && <>
-      <div className="section-label">
-        <span className="lbl">Today on campus</span>
-        <span className="act" onClick={() => nav('/calendar')} style={{ cursor: 'pointer' }}>
-          See all
-        </span>
-      </div>
-
-      <div className="seg seg-sm" style={{ marginBottom: 14 }}>
-        <button className={view === 'mine' ? 'active' : ''} onClick={() => setView('mine')}>
-          Your events
-        </button>
-        <button className={view === 'school' ? 'active' : ''} onClick={() => setView('school')}>
-          School events
-        </button>
-      </div>
-
-      <div className="list" style={{ marginBottom: 24 }}>
-        {shown.length === 0 && view === 'mine' && (
-          <button className="empty" style={{ width: '100%', background: 'none', border: 'none' }} onClick={() => setView('school')}>
-            Nothing on your plate today — see what's happening at school →
-          </button>
-        )}
-        {shown.length === 0 && view === 'school' && <div className="empty">Nothing scheduled.</div>}
-        {shown.slice(0, 6).map((e, i) => {
-          const conflicted = conflicts.some((c) => c.a === e || c.b === e);
-          const notice = e.kind === 'notice';
-          return (
-            <div key={e.id}>
-              {i > 0 && <div className="divider" />}
-              <button className="row" onClick={() => nav('/event/' + e.id)}>
-                <span className="time tnum">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
-                <span
-                  className="dot"
-                  style={{ background: conflicted ? 'var(--warn)' : notice ? 'var(--info)' : statusColor(e.status) }}
-                />
-                <span className="body">
-                  <span className="title" style={conflicted ? { color: 'var(--warn)' } : undefined}>
-                    {conflicted && <i className={'ti ' + CONFLICT_ICON} style={{ fontSize: 14, marginRight: 4 }} />}
-                    {e.name}
-                  </span>
-                  <span className="sub" style={conflicted ? { color: 'var(--warn)' } : undefined}>
-                    {conflicted
-                      ? `${e.rooms[0]} · double-booked`
-                      : notice
-                        ? `${e.audience ? e.audience + ' · ' : ''}FYI — no space booked`
-                        : `${e.rooms.join(', ') || 'No room'}${e.owner ? ' · ' + e.owner : ''}`}
-                  </span>
-                </span>
-                <i className="ti ti-chevron-right chev" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-      </>}
 
       {myTasks > 0 && (
         <button

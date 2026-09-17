@@ -86,7 +86,8 @@ export default function RoomDetail() {
   const now = DEMO_TODAY.getTime();
   const upcoming = db.events
     .filter((e) => e.rooms.includes(room.name) && e.starts_at && new Date(e.starts_at).getTime() >= now - 12 * 3600e3)
-    .sort((a, b) => (a.starts_at! < b.starts_at! ? -1 : 1))
+    // By instant, not string: the seed mixes offset and UTC timestamps.
+    .sort((a, b) => new Date(a.starts_at!).getTime() - new Date(b.starts_at!).getTime())
     .slice(0, 25);
 
   return (
