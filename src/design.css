@@ -234,13 +234,31 @@ body {
 .rail-emph { color: var(--ink-2); }
 .rail-empty { padding: 26px 0 26px 62px; color: var(--ink-3); font-size: 14px; }
 
-/* A clash is the one thing that gets gold, and it is answered in place. */
-.rail-row-clash .rail-body {
-  border-left: 2px solid var(--gold);
-  margin-left: -23px;
-  padding-left: 21px;
-  gap: 7px;
+/* A clash is the one thing that gets gold, and it is answered in place.
+   The whole entry becomes the alert — a single tinted pane the day is
+   interrupted by. (It used to be a gold rule down the left edge, but that
+   sat exactly where the time label is and read as a strike through "6:00
+   PM" rather than as a marker.) */
+.rail-row-clash {
+  position: relative;
+  padding: 15px 15px 17px;
+  margin: 0 -15px 20px;
+  border-radius: var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--gold) 15%, transparent),
+      color-mix(in srgb, var(--gold) 6%, transparent)
+    ),
+    color-mix(in srgb, var(--ground-2) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 22%, transparent);
 }
+.rail-row-clash .rail-body { gap: 7px; }
+/* Inside the pane the time belongs to the alert, so it takes its colour. */
+.rail-row-clash .rail-time { color: color-mix(in srgb, var(--gold) 78%, var(--ink)); }
 .rail-flag {
   display: flex;
   align-items: center;
