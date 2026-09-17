@@ -123,13 +123,47 @@ tokens before real external use.
 
 ---
 
+## Roles
+
+`memberships.role` is the authority, enforced by RLS:
+
+| role | access.ts level | can |
+|---|---|---|
+| `admin` | 2 | manage people and access |
+| `manager` | 1 | manage people, not admin grants |
+| `member` | 0 | normal work — bookings, requests, comments |
+
+**Why this mattered:** `people` is what defines UI privilege (`site_admin` ->
+level 2). While any member could write that table, any member could set their
+own `site_admin`, reload, and be an administrator. Enforcing it in the UI
+alone was never enforcement. `people` is now readable by all members and
+writable only by admins/managers, and `audit` is append-only — an audit trail
+its subjects can edit is not an audit trail.
+
+Verified by impersonating a plain member in SQL: the escalating UPDATE
+affected 0 rows, the escalating INSERT was refused by RLS, DELETE on audit
+removed 0 rows, and ordinary event/audit inserts still worked.
+
+**The UI takes privilege from the server role, not from the roster.** The
+published roster carries sanitised `@demo.wcsmiami.org` addresses, so a real
+sign-in (`rgarrido@wcsmiami.org`) matched nothing and every genuine user
+silently landed as a Viewer — with their real name on it, which made it look
+like it had worked. A roster match now supplies human details only;
+privilege comes from `memberships.role`, the same value RLS checks. That also
+keeps the two from disagreeing, which would show up as buttons whose saves
+silently do nothing.
+
+**The first member of a school becomes its admin**, otherwise a new school
+has nobody who can manage anyone. Everyone after starts as `member`.
+
+**Still coarse:** the app's object-centric permissions (per-room editors,
+conflict resolvers, department leads) are still UI-only. A `member` can write
+any booking in their school. Tightening that is the next step, and needs the
+per-object model expressed in RLS.
+
 ## Open work, in the order it matters
 
-1. **Roles live in app data, not `memberships.role`.** Permissions are
-   enforced in the UI only, so RLS currently lets any member read and write
-   their whole school's rows. This is the line between pilot and product, and
-   it gets harder with every feature added.
-2. **Invite tokens** (above).
+1. **Invite tokens** (above).
 3. **Per-school branding** — still hard-coded Steward.
 4. **A settings screen for modules** — the data layer is ready, there's no UI.
 5. **Gotham fonts 404** — licensed to JDRF, not WCS. Falls back to Montserrat

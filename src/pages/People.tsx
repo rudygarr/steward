@@ -7,14 +7,17 @@ import AddStaff from '../components/AddStaff';
 
 export default function People() {
   const { db } = useStore();
-  const { user } = useSession();
+  const { user, role } = useSession();
   const nav = useNavigate();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
 
   const following = user.following ?? [];
-  const canAdd = canManagePeople(user);
+  // Both must hold: the UI model says you may, AND the database will accept
+  // it. `role` belongs to the signed-in account, so "view as" can't conjure
+  // rights the server would refuse — it would just fail silently.
+  const canAdd = canManagePeople(user) && (role === 'admin' || role === 'manager');
   const inactiveCount = db.people.filter((p) => p.active === false).length;
   const activeCount = db.people.length - inactiveCount;
 

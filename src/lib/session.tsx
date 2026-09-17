@@ -5,9 +5,11 @@ import {
   authConfigured,
   currentUser,
   currentSchool,
+  currentRole,
   signInWithMicrosoft,
   signOutFromMicrosoft,
   type School,
+  type MembershipRole,
 } from './auth';
 import { moduleEnabled } from './modules';
 import type { PersonRec } from './types';
@@ -32,6 +34,12 @@ interface SessionCtx {
   configured: boolean;
   /** The school this account belongs to, once loaded. */
   school: School | null;
+  /**
+   * The signed-in account's role, as enforced by row-level security. Note
+   * this belongs to the REAL account — switching "view as" changes what you
+   * see, never what the database will let you write.
+   */
+  role: MembershipRole;
   /** Is a module switched on here? Unknown modules are off. */
   hasModule: (key: string) => boolean;
 }
@@ -43,14 +51,30 @@ const defaultUser = seedPeople.find((p) => p.name === 'Rudy Garrido') ?? seedPeo
 
 /**
  * Turn the signed-in Microsoft account into the staff record the app runs on.
- * Matching is by school email. Someone real but not in the roster (a new hire,
- * or anyone the seed predates) still gets in, at the lowest permissions —
- * least privilege beats locking a legitimate employee out.
+ *
+ * A roster match supplies the human details (department, following, and so
+ * on), but PRIVILEGE always comes from `memberships.role` — the same value
+ * row-level security enforces. Letting the roster decide would mean the UI
+ * offering actions the database refuses, and it would also make the `people`
+ * table self-granting, which is exactly the hole RLS now closes.
+ *
+ * Matching by email is unreliable here anyway: the published roster carries
+ * sanitised @demo.wcsmiami.org addresses, so real sign-ins rarely match and
+ * would otherwise all land as viewers.
  */
-function personFor(ms: { name: string; email: string }): PersonRec {
+function privilegesFor(role: MembershipRole) {
+  if (role === 'admin') {
+    return { site_admin: true, people: 'Editor', rooms: 'Editor', resources: 'Editor', event: 'Creator' };
+  }
+  if (role === 'manager') {
+    return { site_admin: false, people: 'Editor', rooms: 'Viewer', resources: 'Viewer', event: 'Creator' };
+  }
+  return { site_admin: false, people: 'Viewer', rooms: 'Viewer', resources: 'Viewer', event: 'Viewer' };
+}
+
+function personFor(ms: { name: string; email: string }, role: MembershipRole): PersonRec {
   const match = seedPeople.find((p) => p.email?.toLowerCase() === ms.email);
-  if (match) return match;
-  return {
+  const base: PersonRec = match ?? {
     id: `ms-${ms.email}`,
     name: ms.name,
     email: ms.email,
@@ -62,6 +86,7 @@ function personFor(ms: { name: string; email: string }): PersonRec {
     site_admin: false,
     active: true,
   };
+  return { ...base, ...privilegesFor(role) };
 }
 
 // Keep the audit trail's actor in lock-step with the "view as" user, so store
@@ -75,22 +100,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
 
   const [school, setSchool] = useState<School | null>(null);
+  const [role, setRole] = useState<MembershipRole>('member');
 
-  const adopt = (ms: { name: string; email: string }) => {
-    const p = personFor(ms);
+  const adopt = async (ms: { name: string; email: string }) => {
+    // Role first: it decides what this account may actually do, so resolving
+    // it before mounting avoids a flicker where an admin briefly renders with
+    // a viewer's controls. Row-level security means an account only ever sees
+    // its own school.
+    const [theSchool, theRole] = await Promise.all([currentSchool(), currentRole()]);
+    setSchool(theSchool);
+    setRole(theRole);
+    const p = personFor(ms, theRole);
     setAuditActor(p.name);
     setUser(p);
     setAuthed(true);
-    // Which school, and which modules it runs. Row-level security means an
-    // account only ever sees its own.
-    void currentSchool().then(setSchool);
   };
 
   // Restore an existing Microsoft session so a refresh doesn't re-prompt.
   useEffect(() => {
     let cancelled = false;
     void currentUser().then((ms) => {
-      if (ms && !cancelled) adopt(ms);
+      if (ms && !cancelled) void adopt(ms);
     });
     return () => {
       cancelled = true;
@@ -109,7 +139,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // Either we already had a valid session, or the tab is now navigating
       // to Microsoft and this page is on its way out.
       const ms = await signInWithMicrosoft();
-      if (ms) adopt(ms);
+      if (ms) await adopt(ms);
     } catch (e) {
       // Always log the whole thing — a generic on-screen message with the real
       // cause swallowed makes a sign-in failure impossible to diagnose.
@@ -140,6 +170,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAuthed(false);
     setUser(defaultUser);
     setSchool(null);
+    setRole('member');
   };
 
   return (
@@ -154,6 +185,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         authError,
         configured: authConfigured,
         school,
+        role,
         hasModule: (key: string) => moduleEnabled(school?.modules, key),
       }}
     >

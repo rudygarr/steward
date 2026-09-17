@@ -35,16 +35,21 @@ export default function PersonDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const { db, updatePerson, reassignOwner } = useStore();
-  const { user, setUser } = useSession();
+  const { user, setUser, role } = useSession();
   const [confirming, setConfirming] = useState(false);
 
   const target = db.people.find((p) => p.id === id);
   if (!target) return <div style={{ padding: 24 }}>Person not found.</div>;
 
   const isSelf = target.id === user.id;
-  const editable = canEditPerson(user, target);
-  const adminPermit = canToggleAdmin(user, target, db.people);
-  const deactPermit = canDeactivate(user, target, db.people);
+  // Row-level security only accepts writes to `people` from an admin or
+  // manager, so fold the real account's role in here. Without this the UI
+  // would offer controls whose saves silently do nothing.
+  const mayWritePeople = role === 'admin' || role === 'manager';
+  const deny = { ok: false, reason: 'Your account does not have people-management rights.' };
+  const editable = mayWritePeople ? canEditPerson(user, target) : deny;
+  const adminPermit = mayWritePeople ? canToggleAdmin(user, target, db.people) : deny;
+  const deactPermit = mayWritePeople ? canDeactivate(user, target, db.people) : deny;
   const inactive = target.active === false;
 
   const following = user.following ?? [];

@@ -8,6 +8,7 @@
 --    20260916031048  harden_security_definer_functions   (superseded below)
 --    20260916031128  school_modules
 --    20260917015425  move_rls_helpers_to_private_schema_v2
+--    20260917xxxxxx  roles_in_rls
 --
 --  Written as one baseline rather than six files because the fourth was
 --  largely undone by the sixth, and replaying that sequence would teach a
@@ -37,6 +38,11 @@ create table public.school_domains (
   school_id uuid not null references public.schools (id) on delete cascade
 );
 
+-- role is the server-side authority on privilege, matching the levels in
+-- src/lib/access.ts:
+--   admin   = site_admin      (level 2) — manages people and access
+--   manager = people Editor   (level 1) — manages people, not admin grants
+--   member  = everyone else   (level 0)
 create table public.memberships (
   user_id uuid not null references auth.users (id) on delete cascade,
   school_id uuid not null references public.schools (id) on delete cascade,
@@ -63,6 +69,16 @@ as $$
   select school_id from public.memberships where user_id = (select auth.uid())
 $$;
 
+create or replace function private.user_role()
+returns text
+language sql stable security definer set search_path = ''
+as $$
+  select role from public.memberships
+  where user_id = (select auth.uid())
+  order by created_at
+  limit 1
+$$;
+
 create or replace function private.current_school_id()
 returns uuid
 language sql stable security definer set search_path = ''
@@ -75,6 +91,7 @@ $$;
 
 grant execute on function private.user_school_ids() to authenticated;
 grant execute on function private.current_school_id() to authenticated;
+grant execute on function private.user_role() to authenticated;
 
 -- ── Auto-placement on first sign-in ──────────────────────────────────────
 -- Without this a new member of staff authenticates successfully and then sees
@@ -86,14 +103,21 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   target uuid;
+  existing int;
 begin
   select d.school_id into target
   from public.school_domains d
   where d.domain = lower(split_part(new.email, '@', 2));
 
   if target is not null then
-    insert into public.memberships (user_id, school_id)
-    values (new.id, target)
+    -- The first member of a school becomes its admin; otherwise a brand-new
+    -- school has nobody who can manage anyone. Everyone after that correctly
+    -- starts with no privileges.
+    select count(*) into existing
+    from public.memberships m where m.school_id = target;
+
+    insert into public.memberships (user_id, school_id, role)
+    values (new.id, target, case when existing = 0 then 'admin' else 'member' end)
     on conflict do nothing;
   end if;
 
@@ -141,9 +165,8 @@ begin
          primary key (school_id, id)
        )', t);
     execute format('alter table public.%I enable row level security', t);
-    -- Any signed-in member may read and write their own school's rows, which
-    -- matches how the app behaves today (permissions enforced in the UI).
-    -- TIGHTEN THIS once roles move into memberships.role — see NOTES.md.
+    -- Any signed-in member may read and write their own school's rows. The
+    -- exceptions are `people` and `audit`, re-policied below.
     execute format(
       'create policy %I on public.%I for all to authenticated
          using (school_id in (select private.user_school_ids()))
@@ -169,6 +192,40 @@ alter table public.meta enable row level security;
 create policy meta_rw on public.meta
   for all to authenticated
   using (school_id in (select private.user_school_ids()))
+  with check (school_id in (select private.user_school_ids()));
+
+-- ── Privileged tables ────────────────────────────────────────────────────
+-- `people` defines UI privilege (site_admin -> level 2 in access.ts), so if
+-- any member could write it, any member could make themselves an
+-- administrator. Readable by all members, writable only by admins/managers.
+
+drop policy if exists people_rw on public.people;
+
+create policy people_read on public.people
+  for select to authenticated
+  using (school_id in (select private.user_school_ids()));
+
+create policy people_write on public.people
+  for all to authenticated
+  using (
+    school_id in (select private.user_school_ids())
+    and private.user_role() in ('admin', 'manager')
+  )
+  with check (
+    school_id in (select private.user_school_ids())
+    and private.user_role() in ('admin', 'manager')
+  );
+
+-- An audit trail that can be edited or deleted by the people it records is
+-- not an audit trail. No update or delete policy exists, so both are denied.
+drop policy if exists audit_rw on public.audit;
+
+create policy audit_read on public.audit
+  for select to authenticated
+  using (school_id in (select private.user_school_ids()));
+
+create policy audit_append on public.audit
+  for insert to authenticated
   with check (school_id in (select private.user_school_ids()));
 
 -- ── Tenancy table policies ───────────────────────────────────────────────

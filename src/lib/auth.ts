@@ -35,6 +35,29 @@ export interface School {
 }
 
 /**
+ * The caller's role in their school, as stored in `memberships.role` and
+ * enforced by row-level security. This — not the `people` record — is what
+ * actually decides whether a write succeeds.
+ *
+ *   admin   manages people and access        (access.ts level 2)
+ *   manager manages people, not admin grants (level 1)
+ *   member  everyone else                    (level 0)
+ */
+export type MembershipRole = 'admin' | 'manager' | 'member';
+
+export async function currentRole(): Promise<MembershipRole> {
+  if (!supabase) return 'member';
+  const { data, error } = await supabase
+    .from('memberships')
+    .select('role')
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return 'member';
+  const role = String(data.role);
+  return role === 'admin' || role === 'manager' ? role : 'member';
+}
+
+/**
  * The school this account belongs to. Membership is granted by email domain
  * when the account is first created (see the handle_new_user trigger), so a
  * new member of staff signs in and is simply in the right place.
