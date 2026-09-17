@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { StoreProvider } from './lib/store';
 import { SessionProvider, useSession } from './lib/session';
@@ -36,11 +37,30 @@ import MyInvites from './pages/MyInvites';
 import Rsvp from './pages/Rsvp';
 import './App.css';
 
+/**
+ * Wraps a route that belongs to a switchable module. A school that has turned
+ * the module off shouldn't reach it by typing the URL either, so the gate
+ * lives here rather than only hiding links.
+ */
+function ModuleRoute({ module, children }: { module: string; children: ReactNode }) {
+  const { hasModule } = useSession();
+  if (hasModule(module)) return <>{children}</>;
+  return (
+    <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--text-3)' }}>
+      <i className="ti ti-puzzle-off" style={{ fontSize: 28, display: 'block', marginBottom: 10 }} />
+      <div style={{ fontSize: 16, marginBottom: 6 }}>This module isn&rsquo;t switched on</div>
+      <div style={{ fontSize: 13 }}>An administrator can enable it in the school&rsquo;s settings.</div>
+    </div>
+  );
+}
+
 function Gate() {
   const { authed } = useSession();
   // Public RSVP link — the emailed invite for guests without an account. Lives
   // outside the auth gate; an external guest lands here straight from email.
   if (typeof window !== 'undefined' && window.location.hash.startsWith('#/rsvp/')) {
+    // No StoreProvider: this page reads the public RSVP endpoint, not the
+    // database, precisely because a guest has no account to get past RLS.
     return (
       <HashRouter>
         <Routes>
@@ -52,6 +72,7 @@ function Gate() {
   }
   if (!authed) return <Login />;
   return (
+    <StoreProvider>
     <HashRouter>
       <Shell>
         <Routes>
@@ -60,27 +81,27 @@ function Gate() {
           <Route path="/spaces" element={<Spaces />} />
           <Route path="/people" element={<People />} />
           <Route path="/person/:id" element={<PersonDetail />} />
-          <Route path="/athletics" element={<AthleticsWeek />} />
+          <Route path="/athletics" element={<ModuleRoute module="athletics"><AthleticsWeek /></ModuleRoute>} />
           <Route path="/requests" element={<Requests />} />
-          <Route path="/queue" element={<Queue />} />
-          <Route path="/team" element={<Team />} />
+          <Route path="/queue" element={<ModuleRoute module="work"><Queue /></ModuleRoute>} />
+          <Route path="/team" element={<ModuleRoute module="crew"><Team /></ModuleRoute>} />
           <Route path="/my" element={<MyRequests />} />
-          <Route path="/insights" element={<Insights />} />
+          <Route path="/insights" element={<ModuleRoute module="insights"><Insights /></ModuleRoute>} />
           <Route path="/approvals" element={<Approvals />} />
-          <Route path="/assets" element={<Assets />} />
-          <Route path="/asset/:id" element={<AssetDetail />} />
-          <Route path="/rentals" element={<Rentals />} />
-          <Route path="/rental/:id" element={<RentalDetail />} />
-          <Route path="/audit" element={<Audit />} />
+          <Route path="/assets" element={<ModuleRoute module="assets"><Assets /></ModuleRoute>} />
+          <Route path="/asset/:id" element={<ModuleRoute module="assets"><AssetDetail /></ModuleRoute>} />
+          <Route path="/rentals" element={<ModuleRoute module="rentals"><Rentals /></ModuleRoute>} />
+          <Route path="/rental/:id" element={<ModuleRoute module="rentals"><RentalDetail /></ModuleRoute>} />
+          <Route path="/audit" element={<ModuleRoute module="audit"><Audit /></ModuleRoute>} />
           <Route path="/search" element={<Search />} />
-          <Route path="/teams" element={<Teams />} />
-          <Route path="/crew/:teamId" element={<CrewTeamDetail />} />
+          <Route path="/teams" element={<ModuleRoute module="crew"><Teams /></ModuleRoute>} />
+          <Route path="/crew/:teamId" element={<ModuleRoute module="crew"><CrewTeamDetail /></ModuleRoute>} />
           <Route path="/my-schedule" element={<MySchedule />} />
-          <Route path="/programs" element={<Programs />} />
-          <Route path="/program/:id" element={<ProgramDetail />} />
-          <Route path="/security" element={<Security />} />
-          <Route path="/invites" element={<MyInvites />} />
-          <Route path="/work/:id" element={<WorkDetail />} />
+          <Route path="/programs" element={<ModuleRoute module="programs"><Programs /></ModuleRoute>} />
+          <Route path="/program/:id" element={<ModuleRoute module="programs"><ProgramDetail /></ModuleRoute>} />
+          <Route path="/security" element={<ModuleRoute module="security"><Security /></ModuleRoute>} />
+          <Route path="/invites" element={<ModuleRoute module="invites"><MyInvites /></ModuleRoute>} />
+          <Route path="/work/:id" element={<ModuleRoute module="work"><WorkDetail /></ModuleRoute>} />
           <Route path="/book" element={<Book />} />
           <Route path="/room/:id" element={<RoomDetail />} />
           <Route path="/event/:id" element={<EventDetail />} />
@@ -88,15 +109,19 @@ function Gate() {
         </Routes>
       </Shell>
     </HashRouter>
+    </StoreProvider>
   );
 }
 
 export default function App() {
+  // SessionProvider is OUTSIDE the store on purpose: the data now lives in
+  // Supabase behind row-level security, so nothing can be read until someone
+  // is signed in. Mounting the store first would fire loadDB() as an
+  // anonymous caller, get nothing back, and seed a fresh database over the
+  // shared one.
   return (
-    <StoreProvider>
-      <SessionProvider>
-        <Gate />
-      </SessionProvider>
-    </StoreProvider>
+    <SessionProvider>
+      <Gate />
+    </SessionProvider>
   );
 }

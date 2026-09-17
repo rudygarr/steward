@@ -81,7 +81,7 @@ function RoleSwitcher() {
               className="add-row"
               style={{ color: 'var(--text-3)' }}
               onClick={() => {
-                if (confirm('Reset all demo data back to the original seed? Any rooms, staff, or bookings you added will be removed.')) {
+                if (confirm('Reset the demo data back to the original seed?\n\nThis affects EVERYONE — the data is shared now, so any rooms, staff or bookings anyone has added will be removed for all users.')) {
                   reset();
                   setOpen(false);
                 }
