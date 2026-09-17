@@ -36,6 +36,8 @@ import Security from './pages/Security';
 import MyInvites from './pages/MyInvites';
 import Rsvp from './pages/Rsvp';
 import './App.css';
+// Loaded after App.css: the material system overrides the older flat styles.
+import './design.css';
 
 /**
  * Wraps a route that belongs to a switchable module. A school that has turned

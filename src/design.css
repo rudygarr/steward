@@ -1,0 +1,570 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ *  STEWARD — MATERIAL SYSTEM
+ * ─────────────────────────────────────────────────────────────────────────
+ *  Loaded after App.css and deliberately overrides it, so the whole app is
+ *  restyled through the class names the 30-odd pages already use rather than
+ *  editing each one.
+ *
+ *  The idea is Apple's Liquid Glass: surfaces behave like real material.
+ *  Light collects on a top edge, the panel floats on its own shadow, and what
+ *  is behind it shows through blurred and slightly over-saturated. Depth is
+ *  what creates hierarchy here — not borders, and not more colour.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Continuous, generous corners. Small radii read as "web form". */
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 30px;
+
+  /* Glass. Two levels: content sits on 1, chrome floats on 2. */
+  --glass-1: rgba(255, 255, 255, 0.72);
+  --glass-2: rgba(255, 255, 255, 0.82);
+  --glass-blur: saturate(180%) blur(24px);
+  --glass-blur-strong: saturate(190%) blur(36px);
+
+  /* The specular rim: light catching a top edge, shade on the bottom. */
+  --rim: inset 0 1px 0 rgba(255, 255, 255, 0.9),
+         inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+  --hairline: rgba(0, 0, 0, 0.07);
+
+  /* Elevation: a tight contact shadow plus a wide ambient one. */
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 18px -8px rgba(0, 0, 0, 0.16);
+  --e2: 0 2px 4px rgba(0, 0, 0, 0.06), 0 14px 34px -12px rgba(0, 0, 0, 0.24);
+  --e3: 0 4px 8px rgba(0, 0, 0, 0.08), 0 28px 60px -18px rgba(0, 0, 0, 0.32);
+
+  --accent: linear-gradient(150deg,
+    color-mix(in srgb, var(--green) 88%, white) 0%,
+    var(--green) 55%,
+    color-mix(in srgb, var(--green) 86%, black) 100%);
+  --accent-glow: 0 6px 20px -6px color-mix(in srgb, var(--green) 55%, transparent);
+
+  /* One spring, used everywhere, so the whole app moves the same way. */
+  --spring: cubic-bezier(0.2, 0.9, 0.24, 1);
+  --fast: 0.16s var(--spring);
+  --med: 0.28s var(--spring);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Lifted off pure black: glass needs something to be lit against. */
+    --bg: #0b0b0d;
+    --surface: #17171a;
+    --surface-2: #202024;
+
+    --glass-1: rgba(32, 32, 38, 0.66);
+    --glass-2: rgba(22, 22, 27, 0.78);
+
+    --rim: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+           inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    --hairline: rgba(255, 255, 255, 0.08);
+
+    --e1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 18px -8px rgba(0, 0, 0, 0.6);
+    --e2: 0 2px 6px rgba(0, 0, 0, 0.55), 0 16px 38px -12px rgba(0, 0, 0, 0.7);
+    --e3: 0 6px 12px rgba(0, 0, 0, 0.6), 0 30px 64px -18px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* A quiet wash of brand colour so the background isn't dead flat. */
+body {
+  background:
+    radial-gradient(1100px 620px at 12% -8%,
+      color-mix(in srgb, var(--green) 14%, transparent) 0%, transparent 62%),
+    radial-gradient(900px 520px at 92% 4%,
+      color-mix(in srgb, var(--gold) 10%, transparent) 0%, transparent 58%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* ── Chrome ────────────────────────────────────────────────────────────── */
+
+.topbar {
+  background: var(--glass-2);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border-bottom: 1px solid var(--hairline);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+.topbar-inner { padding: 13px 18px; }
+
+.brand-name {
+  font-family: var(--font-brand);
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+/* The tab bar floats as its own object rather than sitting in a slab. */
+.tabbar {
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: none;
+  padding: 0 14px calc(12px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.tabbar-inner {
+  pointer-events: auto;
+  background: var(--glass-2);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-xl);
+  box-shadow: var(--e2), var(--rim);
+  padding: 7px 6px;
+  max-width: 560px;
+}
+.tab {
+  position: relative;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  padding: 7px 2px;
+  border-radius: 16px;
+  transition: color var(--fast), transform var(--fast);
+}
+.tab i { font-size: 21px; transition: transform var(--med); }
+.tab:active { transform: scale(0.93); }
+/* The active lozenge sits behind the label as its own pane of glass. */
+.tab.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.tab.active i { transform: translateY(-1px) scale(1.06); }
+.tab > * { position: relative; }
+
+/* ── Surfaces ──────────────────────────────────────────────────────────── */
+
+.list,
+.ins-card,
+.banner {
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1), var(--rim);
+}
+
+.row {
+  padding: 14px 16px;
+  transition: background var(--fast);
+}
+.row:active { background: color-mix(in srgb, var(--text-1) 6%, transparent); }
+.divider { background: var(--hairline); height: 1px; border: none; }
+.chev { color: var(--text-3); transition: transform var(--fast); }
+.row:hover .chev { transform: translateX(2px); }
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+/* Layered like a real control: gradient body, light on the top edge, its own
+   shadow, and a press that actually depresses. */
+
+.btn-soft {
+  position: relative;
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 9px 17px;
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  box-shadow: var(--e1), var(--rim);
+  transition: transform var(--fast), box-shadow var(--fast), background var(--fast);
+  cursor: pointer;
+}
+.btn-soft:hover { transform: translateY(-1px); box-shadow: var(--e2), var(--rim); }
+.btn-soft:active { transform: translateY(0) scale(0.97); box-shadow: var(--e1), var(--rim); }
+.btn-soft:disabled { opacity: 0.45; transform: none; box-shadow: var(--e1); cursor: not-allowed; }
+
+/* The floating action button is the one true accent on a screen. */
+.fab {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: var(--e2), var(--accent-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.28),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  transition: transform var(--fast), box-shadow var(--fast);
+  cursor: pointer;
+}
+.fab:hover { transform: translateY(-1.5px); box-shadow: var(--e3), var(--accent-glow); }
+.fab:active { transform: scale(0.96); }
+
+.signin-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 15px 30px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  box-shadow: var(--e2), var(--accent-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  transition: transform var(--fast), box-shadow var(--fast);
+}
+.signin-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--e3), var(--accent-glow); }
+.signin-btn:active:not(:disabled) { transform: scale(0.97); }
+
+/* ── Shortcut tiles ────────────────────────────────────────────────────── */
+/* These are the first thing anyone touches, so they get the most craft: a
+   pane of glass each, a gradient icon chip that glows in its own hue, and a
+   press that reads as physical. Auto-fit so a fifth tile never orphans. */
+
+.tiles {
+  grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
+  gap: 10px;
+}
+.tile {
+  position: relative;
+  padding: 16px 8px 13px;
+  border-radius: var(--r-lg);
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--e1), var(--rim);
+  gap: 11px;
+  overflow: hidden;
+  transition: transform var(--med), box-shadow var(--med);
+  cursor: pointer;
+}
+/* A sheen across the top third, as light would fall on curved glass. */
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 52%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
+.tile:hover { transform: translateY(-3px); box-shadow: var(--e2), var(--rim); }
+.tile:active { transform: translateY(0) scale(0.96); box-shadow: var(--e1), var(--rim); }
+
+.tile .tile-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  font-size: 21px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              0 6px 14px -6px currentColor;
+  transition: transform var(--med);
+}
+.tile:hover .tile-icon { transform: scale(1.07) rotate(-2deg); }
+.tile-label {
+  font-size: 12.5px;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  color: var(--text-2);
+}
+
+/* Give each door its own material rather than a flat tint. */
+.t-book   { background: linear-gradient(145deg, color-mix(in srgb, var(--info) 26%, transparent), color-mix(in srgb, var(--info) 12%, transparent)); color: var(--info); }
+.t-maint  { background: linear-gradient(145deg, color-mix(in srgb, var(--warn) 26%, transparent), color-mix(in srgb, var(--warn) 12%, transparent)); color: var(--warn); }
+.t-it     { background: linear-gradient(145deg, color-mix(in srgb, var(--text-1) 16%, transparent), color-mix(in srgb, var(--text-1) 7%, transparent)); color: var(--text-1); }
+.t-visit  { background: linear-gradient(145deg, color-mix(in srgb, var(--ok) 26%, transparent), color-mix(in srgb, var(--ok) 12%, transparent)); color: var(--ok); }
+.t-ath    { background: linear-gradient(145deg, color-mix(in srgb, var(--gold) 30%, transparent), color-mix(in srgb, var(--gold) 14%, transparent)); color: var(--gold); }
+.t-rental { background: linear-gradient(145deg, color-mix(in srgb, var(--green) 28%, transparent), color-mix(in srgb, var(--green) 13%, transparent)); color: var(--green); }
+
+/* ── Type ──────────────────────────────────────────────────────────────── */
+
+.page-h {
+  font-size: 30px;
+  font-weight: 680;
+  letter-spacing: -0.028em;
+  line-height: 1.12;
+}
+.page-sub { color: var(--text-3); letter-spacing: -0.005em; }
+.section-label {
+  font-size: 11.5px;
+  font-weight: 640;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.title { font-weight: 570; letter-spacing: -0.012em; }
+
+/* ── Small parts ───────────────────────────────────────────────────────── */
+
+.pill {
+  border-radius: 999px;
+  font-weight: 580;
+  letter-spacing: 0.005em;
+  padding: 3.5px 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+.avatar {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 620;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), var(--e1);
+}
+.userchip {
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 5px 5px 5px 13px;
+  box-shadow: var(--e1), var(--rim);
+  transition: transform var(--fast);
+}
+.userchip:active { transform: scale(0.96); }
+.bell {
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  box-shadow: var(--e1), var(--rim);
+  transition: transform var(--fast);
+}
+.bell:active { transform: scale(0.92); }
+
+/* Sheets and dialogs are the most prominent glass in the app. */
+.switch-panel,
+.modal,
+.sheet {
+  background: var(--glass-2);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-xl);
+  box-shadow: var(--e3), var(--rim);
+}
+.switch-backdrop,
+.modal-backdrop {
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* ── Accessibility ─────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--green) 75%, white);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .tile:hover,
+  .btn-soft:hover,
+  .fab:hover { transform: none; }
+}
+
+/* ── Dashboard shortcuts ───────────────────────────────────────────────── */
+/* The first thing anyone taps, and the grid that sets the tone for the whole
+   app — so these get the most attention. Each is a pane of glass carrying a
+   gradient icon chip that glows faintly in the brand green. Four across is
+   cramped on a phone; auto-fit keeps them comfortable and never orphans one
+   on a line of its own. */
+
+.sc-grid {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 11px;
+}
+
+.sc-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 17px 9px 14px;
+  border-radius: var(--r-lg);
+  background: var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--e1), var(--rim);
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--med), box-shadow var(--med), border-color var(--med);
+}
+/* Light falling across the top of the pane. */
+.sc-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 54%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
+.sc-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--e2), var(--rim);
+  border-color: color-mix(in srgb, var(--green) 32%, var(--hairline));
+  background: var(--glass-1);
+}
+.sc-tile:active { transform: translateY(0) scale(0.96); box-shadow: var(--e1), var(--rim); }
+
+/* The icon becomes a chip in its own right, with a rim and a coloured glow. */
+.sc-tile .ti {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: 21px;
+  color: var(--green);
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--green) 26%, transparent),
+    color-mix(in srgb, var(--green) 11%, transparent));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+              0 6px 16px -8px color-mix(in srgb, var(--green) 70%, transparent);
+  transition: transform var(--med);
+}
+.sc-tile:hover .ti { transform: scale(1.07) rotate(-2deg); }
+.sc-tile span { line-height: 1.25; color: var(--text-2); }
+
+.sc-empty {
+  border-radius: var(--r-lg);
+  border: 1.5px dashed color-mix(in srgb, var(--text-3) 40%, transparent);
+  padding: 22px;
+  transition: border-color var(--fast), color var(--fast);
+}
+.sc-empty:hover {
+  border-color: color-mix(in srgb, var(--green) 50%, transparent);
+  color: var(--green);
+}
+
+.sc-edit {
+  font-weight: 570;
+  padding: 4px 10px;
+  border-radius: 999px;
+  transition: background var(--fast);
+}
+.sc-edit:hover { background: color-mix(in srgb, var(--green) 12%, transparent); }
+
+/* ── Fit and polish ────────────────────────────────────────────────────── */
+
+/* The floating tab bar needs real room beneath the content, or the last row
+   of a list sits under glass and looks clipped. */
+.app { padding-bottom: 112px; }
+
+/* Four shortcuts across on a phone. At minmax(92px) the fourth wrapped onto a
+   line of its own, which looked like a mistake rather than a layout. */
+.sc-grid { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); }
+.sc-tile { padding: 15px 6px 12px; gap: 9px; }
+.sc-tile .ti { width: 42px; height: 42px; border-radius: 13px; font-size: 20px; }
+.sc-tile span { font-size: 11.5px; }
+
+/* Chips were too dim against dark glass — the icon is the thing you aim at,
+   so it should read first. */
+@media (prefers-color-scheme: dark) {
+  .sc-tile .ti {
+    color: color-mix(in srgb, var(--green) 55%, white);
+    background: linear-gradient(150deg,
+      color-mix(in srgb, var(--green) 42%, transparent),
+      color-mix(in srgb, var(--green) 18%, transparent));
+  }
+  .tile .tile-icon { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 6px 16px -8px currentColor; }
+}
+
+/* The conflicts banner is the one alarming thing on Home. Give it the same
+   material as everything else so it belongs, but keep its amber identity and
+   let it carry a warmer edge. */
+.banner,
+.cc-card {
+  background:
+    linear-gradient(150deg,
+      color-mix(in srgb, var(--warn) 13%, transparent),
+      color-mix(in srgb, var(--warn) 5%, transparent)),
+    var(--glass-1);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid color-mix(in srgb, var(--warn) 26%, transparent);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e1),
+              inset 0 1px 0 color-mix(in srgb, var(--warn) 22%, transparent);
+}
+
+/* Status pills read as labels, not buttons: quieter, tighter, monospaced
+   width so a column of them lines up. */
+.pill {
+  font-size: 10.5px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  font-weight: 640;
+}
+
+/* The tab bar's rim was reading as a hard outline rather than an edge catching
+   light. Soften the border and let the shadow do the separating. */
+.tabbar-inner {
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+@media (prefers-color-scheme: light) {
+  .tabbar-inner {
+    border-color: rgba(0, 0, 0, 0.05);
+    box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+}
+
+/* ── Segmented controls ────────────────────────────────────────────────── */
+/* A recessed glass trough with a raised, lit thumb — the selected segment
+   should look like it sits above the track, not merely tinted. */
+
+.seg {
+  background: color-mix(in srgb, var(--text-1) 7%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--hairline);
+  border-radius: 13px;
+  padding: 3px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.seg button {
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: -0.008em;
+  padding: 7px 15px;
+  border-radius: 10px;
+  transition: color var(--fast), background var(--fast), box-shadow var(--fast), transform var(--fast);
+}
+.seg button:active { transform: scale(0.96); }
+.seg button.active {
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16),
+              0 4px 10px -4px rgba(0, 0, 0, 0.24),
+              inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Opt-in accent for the one primary action on a screen. Add `primary` to the
+   button rather than guessing by position — a positional selector would catch
+   the wrong control the moment a page's header changes. */
+.btn-soft.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--e1), var(--accent-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+.btn-soft.primary:hover {
+  box-shadow: var(--e2), var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
