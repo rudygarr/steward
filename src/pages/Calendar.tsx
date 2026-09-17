@@ -1,16 +1,15 @@
 import { useState } from 'react';
+import DayRail, { type RailEntry } from '../components/DayRail';
 import { useNavigate } from 'react-router-dom';
 import {
   DEMO_TODAY,
   eventsOnDay,
   findConflicts,
-  fmtTime,
   fmtDateLong,
   fmtDateShort,
   addDays,
   startOfWeek,
   dayKey,
-  statusColor,
   isMine,
 } from '../lib/data';
 import { blackoutForDate } from '../lib/calendar';
@@ -57,6 +56,41 @@ export default function Calendar() {
   const dayEvents = eventsOnDay(db.events, day);
   const list = dayEvents.filter(matchesFilters);
   const conflicts = findConflicts(dayEvents);
+
+  // The same rail as Home, carrying this page's richer per-event state. The
+  // now-rule only belongs on today — on any other date there is no "now" to
+  // draw, and showing one would be a lie.
+  const isToday = dayKey(day) === dayKey(DEMO_TODAY);
+  const clashOf = new Map<string, string>();
+  for (const c of conflicts) {
+    clashOf.set(c.a.id, c.b.name);
+    clashOf.set(c.b.id, c.a.name);
+  }
+  const railEntries: RailEntry[] = list.map((e) => {
+    const ci = checkinState(e, DEMO_TODAY);
+    const extras: string[] = [];
+    if (e.resources.length) extras.push(e.resources.join(', '));
+    if (e.assignments?.length) extras.push(e.assignments.map((a) => a.role).join(', '));
+    return {
+      ev: e,
+      clashWith: clashOf.get(e.id),
+      struck: !!e.cancelled || ci === 'released',
+      notice: e.kind === 'notice',
+      followed: view !== 'following' && !e.cancelled && involvesFollowed(e),
+      note: e.cancelled
+        ? 'Cancelled'
+        : ci === 'in'
+          ? 'Checked in'
+          : ci === 'noshow'
+            ? 'No-show'
+            : e.kind === 'notice'
+              ? 'FYI'
+              : e.status === 'Pending'
+                ? 'Pending'
+                : undefined,
+      extras,
+    };
+  });
   const week = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(day), i));
 
   // Saved views available to this user: shared (seeded) + their own.
@@ -243,148 +277,23 @@ export default function Calendar() {
         </div>
       )}
 
-      {conflicts.length > 0 && (
-        <div className="banner">
-          <i className="ti ti-alert-triangle" />
-          <span>
-            <b>
-              {conflicts.length} conflict{conflicts.length === 1 ? '' : 's'}
-            </b>{' '}
-            today — {conflicts[0].room} is double-booked.
-          </span>
-        </div>
+      {list.length === 0 ? (
+        <button
+          className="rail-empty"
+          style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+          onClick={() => (filterCount ? clearFilters() : setView('school'))}
+        >
+          {view === 'mine' && filterCount === 0
+            ? 'Nothing of yours this day — see school events \u2192'
+            : view === 'following'
+              ? 'No one you follow has events this day \u2192'
+              : filterCount > 0
+                ? 'Nothing matches this view — tap to clear filters'
+                : 'Nothing scheduled this day.'}
+        </button>
+      ) : (
+        <DayRail entries={railEntries} now={isToday ? DEMO_TODAY : null} />
       )}
-
-      <div className="list">
-        {list.length === 0 && view === 'mine' && filterCount === 0 && (
-          <button className="empty" style={{ width: '100%', background: 'none', border: 'none' }} onClick={() => setView('school')}>
-            Nothing of yours this day — see school events →
-          </button>
-        )}
-        {list.length === 0 && view === 'following' && (
-          <button className="empty" style={{ width: '100%', background: 'none', border: 'none' }} onClick={() => setView('school')}>
-            No one you follow has events this day — see school events →
-          </button>
-        )}
-        {list.length === 0 && view === 'school' && (
-          <button className="empty" style={{ width: '100%', background: 'none', border: 'none', cursor: filterCount ? 'pointer' : 'default' }} onClick={() => filterCount && clearFilters()}>
-            {filterCount > 0 ? 'Nothing matches this view — tap to clear filters' : 'Nothing scheduled this day.'}
-          </button>
-        )}
-        {list.map((e, i) => {
-          const conflicted = conflicts.some((c) => c.a === e || c.b === e);
-          const notice = e.kind === 'notice';
-          const cancelled = !!e.cancelled;
-          const ci = checkinState(e, DEMO_TODAY);
-          return (
-            <div key={e.id}>
-              {i > 0 && <div className="divider" />}
-              <button className="row" onClick={() => nav('/event/' + e.id)}>
-                <span className="time tnum">
-                  {e.all_day ? (
-                    'All day'
-                  ) : (
-                    <>
-                      {fmtTime(e.starts_at)}
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{fmtTime(e.ends_at)}</div>
-                    </>
-                  )}
-                </span>
-                <span
-                  className="dot"
-                  style={{ background: conflicted ? 'var(--warn)' : notice ? 'var(--info)' : statusColor(e.status) }}
-                />
-                <span className="body">
-                  <span
-                    className="title"
-                    style={
-                      cancelled
-                        ? { color: 'var(--text-3)', textDecoration: 'line-through' }
-                        : conflicted
-                          ? { color: 'var(--warn)' }
-                          : ci === 'released'
-                            ? { color: 'var(--text-3)', textDecoration: 'line-through' }
-                            : undefined
-                    }
-                  >
-                    {conflicted && <i className="ti ti-alert-triangle" style={{ fontSize: 14, marginRight: 4 }} />}
-                    {!conflicted && ci === 'in' && (
-                      <i className="ti ti-circle-check" style={{ fontSize: 14, marginRight: 4, color: 'var(--ok)' }} />
-                    )}
-                    {!conflicted && ci === 'noshow' && (
-                      <i className="ti ti-user-x" style={{ fontSize: 14, marginRight: 4, color: 'var(--warn)' }} />
-                    )}
-                    {view !== 'following' && !cancelled && involvesFollowed(e) && (
-                      <i className="ti ti-star-filled" style={{ fontSize: 13, marginRight: 4, color: 'var(--gold)' }} title="Someone you follow" />
-                    )}
-                    {e.name}
-                  </span>
-                  <span className="sub">
-                    {notice
-                      ? e.location || (e.audience ? e.audience : 'No space booked')
-                      : `${e.rooms.join(', ') || 'No room'}${e.owner ? ' · ' + e.owner : ''}`}
-                  </span>
-                  {e.resources.length > 0 && (
-                    <span className="sub" style={{ color: 'var(--text-3)' }}>
-                      <i className="ti ti-plug-connected" style={{ fontSize: 12, marginRight: 4 }} />
-                      {e.resources.join(', ')}
-                    </span>
-                  )}
-                  {(e.assignments?.length ?? 0) > 0 && (
-                    <span className="sub" style={{ color: 'var(--text-3)' }}>
-                      <i className="ti ti-users" style={{ fontSize: 12, marginRight: 4 }} />
-                      {e.assignments!.map((a) => a.role).join(', ')}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className="pill"
-                  style={{
-                    background: cancelled
-                      ? 'color-mix(in srgb, var(--bad) 14%, transparent)'
-                      : conflicted
-                        ? 'color-mix(in srgb, var(--warn) 16%, transparent)'
-                        : notice
-                          ? 'color-mix(in srgb, var(--info) 14%, transparent)'
-                          : ci === 'noshow'
-                            ? 'color-mix(in srgb, var(--warn) 16%, transparent)'
-                            : ci === 'in'
-                              ? 'color-mix(in srgb, var(--ok) 16%, transparent)'
-                              : 'var(--surface-2)',
-                    color: cancelled
-                      ? 'var(--bad)'
-                      : conflicted
-                        ? 'var(--warn)'
-                        : notice
-                          ? 'var(--info)'
-                          : ci === 'noshow'
-                            ? 'var(--warn)'
-                            : ci === 'in'
-                              ? 'var(--ok)'
-                              : ci === 'released'
-                                ? 'var(--text-3)'
-                                : statusColor(e.status),
-                  }}
-                >
-                  {cancelled
-                    ? 'Cancelled'
-                    : conflicted
-                      ? 'Conflict'
-                      : notice
-                        ? 'FYI'
-                        : ci === 'noshow'
-                          ? 'No-show'
-                          : ci === 'in'
-                            ? 'Checked in'
-                            : ci === 'released'
-                              ? 'Released'
-                              : e.status}
-                </span>
-              </button>
-            </div>
-          );
-        })}
-      </div>
 
       <div style={{ height: 16 }} />
     </>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import RoomRibbon from '../components/RoomRibbon';
 import { useNavigate } from 'react-router-dom';
 import { useStore, groupByFolder } from '../lib/store';
 import { roomHasConflict, resourceHasConflict } from '../lib/conflicts';
@@ -230,11 +231,15 @@ export default function Spaces() {
                             <i className={'ti ' + (icons[f.name] || 'ti-point')} />
                           </span>
                         )}
-                        <span className="nm" style={contested ? { color: 'var(--warn)' } : undefined}>
-                          {contested && (
-                            <i className="ti ti-alert-triangle" style={{ color: 'var(--warn)', fontSize: 14, marginRight: 5 }} />
+                        <span className="nm">
+                          <span className={contested ? 'nm-contested' : undefined}>
+                            {contested && <i className="ti ti-alert-triangle" style={{ fontSize: 13, marginRight: 5 }} />}
+                            {item.name}
+                          </span>
+                          {/* A room's day as a shape, not a count. */}
+                          {tab === 'rooms' && (
+                            <RoomRibbon db={db} room={item.name} contested={contested} />
                           )}
-                          {item.name}
                         </span>
                         <span className="meta" style={over ? { color: 'var(--warn)', fontWeight: 600 } : undefined}>
                           {avail !== null

@@ -450,3 +450,75 @@ body {
 .rail-scope button.active { color: var(--ink); }
 .rail-scope-sep { flex: 1; height: 1px; background: var(--line); }
 .rail-scope-all { color: var(--gold) !important; }
+
+/* ── Rail: the states Calendar carries ─────────────────────────────────── */
+/* Expressed as weight, opacity and rhythm. Gold stays reserved for a clash,
+   so nothing else competes with the one thing needing a decision. */
+
+.rail-until {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-3);
+  opacity: 0.65;
+  margin-top: 2px;
+}
+.rail-row.is-struck .rail-title { text-decoration: line-through; color: var(--ink-3); }
+.rail-row.is-struck { opacity: 0.55; }
+/* A notice holds no room — it's awareness, so it sits lighter than a booking. */
+.rail-row.is-notice .rail-title { font-weight: 400; color: var(--ink-2); }
+.rail-extra { color: var(--ink-3); opacity: 0.8; font-size: 11.5px; }
+.rail-note {
+  font-family: var(--font-num);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  align-self: start;
+  padding-top: 4px;
+  white-space: nowrap;
+}
+/* Followed people get a mark, not a colour — an outlined dot before the name. */
+.rail-follow {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  border: 1px solid var(--ink-3);
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.rail-row-btn { grid-template-columns: 40px 1fr auto; }
+.rail-row-clash { grid-template-columns: 40px 1fr; }
+
+/* ── Room ribbon: the rail lying flat ──────────────────────────────────── */
+/* One track per room, 7am to 7pm. Occupied stretches are drawn, the live
+   moment is a gold tick. Answers "is it free after lunch?" at a glance,
+   which a booking count never could. */
+
+.ribbon {
+  position: relative;
+  display: block;
+  height: 3px;
+  margin-top: 7px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.ribbon-block {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--ink-3);
+  border-radius: 2px;
+}
+.ribbon-block.is-contested { background: var(--gold); }
+.ribbon-now {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  background: var(--gold);
+}
+.nm-contested { color: var(--gold); }
+/* The name column owns the ribbon now, so let it breathe. */
+.space-row .nm { display: block; min-width: 0; }

@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import DayRail, { type RailEntry } from '../components/DayRail';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../lib/store';
-import { fmtTime, fmtDateShort, statusColor, DEMO_TODAY } from '../lib/data';
+import { fmtTime, fmtDateShort, statusColor, DEMO_TODAY, eventsOnDay, findConflicts } from '../lib/data';
 import Modal, { field, primaryBtn } from '../components/Modal';
 import type { Room } from '../lib/types';
 
@@ -84,10 +85,29 @@ export default function RoomDetail() {
   }
 
   const now = DEMO_TODAY.getTime();
+
+  // This room's today, on the same rail the rest of the app reads time on —
+  // a room's day is the campus day seen from one room's side.
+  const todayHere = eventsOnDay(db.events, DEMO_TODAY).filter((e) => e.rooms.includes(room.name));
+  const clashesHere = findConflicts(todayHere);
+  const clashOf = new Map<string, string>();
+  for (const c of clashesHere) {
+    clashOf.set(c.a.id, c.b.name);
+    clashOf.set(c.b.id, c.a.name);
+  }
+  const railEntries: RailEntry[] = todayHere.map((e) => ({
+    ev: e,
+    clashWith: clashOf.get(e.id),
+    struck: !!e.cancelled,
+    notice: e.kind === 'notice',
+  }));
+  const todayIds = new Set(todayHere.map((e) => e.id));
+
   const upcoming = db.events
     .filter((e) => e.rooms.includes(room.name) && e.starts_at && new Date(e.starts_at).getTime() >= now - 12 * 3600e3)
     // By instant, not string: the seed mixes offset and UTC timestamps.
     .sort((a, b) => new Date(a.starts_at!).getTime() - new Date(b.starts_at!).getTime())
+    .filter((e) => !todayIds.has(e.id))
     .slice(0, 25);
 
   return (
@@ -120,12 +140,22 @@ export default function RoomDetail() {
       </div>
 
       <div className="section-label">
-        <span className="lbl">Upcoming bookings</span>
+        <span className="lbl">Today in this room</span>
+        <span className="act">{todayHere.length}</span>
+      </div>
+      {todayHere.length === 0 ? (
+        <div className="rail-empty">Free all day.</div>
+      ) : (
+        <DayRail entries={railEntries} />
+      )}
+
+      <div className="section-label" style={{ marginTop: 26 }}>
+        <span className="lbl">Later</span>
         <span className="act">{upcoming.length}</span>
       </div>
 
       <div className="list">
-        {upcoming.length === 0 && <div className="empty">No upcoming bookings.</div>}
+        {upcoming.length === 0 && <div className="empty">Nothing booked beyond today.</div>}
         {upcoming.map((e, i) => (
           <div key={e.id}>
             {i > 0 && <div className="divider" />}

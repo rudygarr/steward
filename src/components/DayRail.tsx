@@ -25,6 +25,16 @@ export interface RailEntry {
   conflict?: Conflict;
   /** What it collides with, phrased for a human. */
   clashWith?: string;
+  /** Struck through and receded: cancelled, or a no-show whose room was reclaimed. */
+  struck?: boolean;
+  /** Calendar-only awareness — nothing is holding a room. */
+  notice?: boolean;
+  /** A short state word for the right margin ("Checked in", "No-show", "Pending"). */
+  note?: string;
+  /** Someone the viewer follows is involved. */
+  followed?: boolean;
+  /** Extra lines beneath the location — resources, crew roles. */
+  extras?: string[];
 }
 
 function minutesInto(iso: string | null): number {
@@ -33,17 +43,24 @@ function minutesInto(iso: string | null): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-export default function DayRail({ entries }: { entries: RailEntry[] }) {
+export default function DayRail({
+  entries,
+  now = DEMO_TODAY,
+}: {
+  entries: RailEntry[];
+  /** The moment to draw the live rule at. Null on any day that isn't today —
+   *  there is no "now" on Thursday next week, and drawing one would be a lie. */
+  now?: Date | null;
+}) {
   const nav = useNavigate();
-  const nowMin = DEMO_TODAY.getHours() * 60 + DEMO_TODAY.getMinutes();
-  const nowLabel = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(DEMO_TODAY);
+  const nowMin = now ? now.getHours() * 60 + now.getMinutes() : -1;
+  const nowLabel = now
+    ? new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(now)
+    : '';
 
   // The now-rule belongs between the last thing past and the next thing due.
   const nextIdx = entries.findIndex((e) => minutesInto(e.ev.starts_at) >= nowMin);
-  const nowAt = nextIdx === -1 ? entries.length : nextIdx;
+  const nowAt = !now ? -1 : nextIdx === -1 ? entries.length : nextIdx;
 
   return (
     <div className="rail">
@@ -52,7 +69,11 @@ export default function DayRail({ entries }: { entries: RailEntry[] }) {
       {entries.map((entry, i) => (
         <div key={entry.ev.id}>
           {i === nowAt && <NowRule label={nowLabel} />}
-          <RailRow entry={entry} past={minutesInto(entry.ev.starts_at) < nowMin} onOpen={() => nav('/event/' + entry.ev.id)} />
+          <RailRow
+            entry={entry}
+            past={!!now && minutesInto(entry.ev.starts_at) < nowMin}
+            onOpen={() => nav('/event/' + entry.ev.id)}
+          />
         </div>
       ))}
 
@@ -78,8 +99,13 @@ function NowRule({ label }: { label: string }) {
 
 function RailRow({ entry, past, onOpen }: { entry: RailEntry; past: boolean; onOpen: () => void }) {
   const { ev, clashWith } = entry;
-  const where = ev.rooms?.[0] ?? ev.location ?? '';
+  const where = entry.notice
+    ? ev.location || 'No space booked'
+    : ev.rooms?.join(', ') || ev.location || 'No room';
   const meta = [where, ev.owner].filter(Boolean).join(' · ');
+
+  const stateClass =
+    (past ? ' is-past' : '') + (entry.struck ? ' is-struck' : '') + (entry.notice ? ' is-notice' : '');
 
   if (clashWith) {
     return (
@@ -108,12 +134,22 @@ function RailRow({ entry, past, onOpen }: { entry: RailEntry; past: boolean; onO
   }
 
   return (
-    <button className={'rail-row rail-row-btn' + (past ? ' is-past' : '')} onClick={onOpen}>
-      <div className="rail-time">{ev.all_day ? 'all day' : fmtTime(ev.starts_at)}</div>
-      <div className="rail-body">
-        <div className="rail-title">{ev.name}</div>
-        {meta && <div className="rail-sub">{meta}</div>}
+    <button className={'rail-row rail-row-btn' + stateClass} onClick={onOpen}>
+      <div className="rail-time">
+        {ev.all_day ? 'all day' : fmtTime(ev.starts_at)}
+        {!ev.all_day && ev.ends_at && <span className="rail-until">{fmtTime(ev.ends_at)}</span>}
       </div>
+      <div className="rail-body">
+        <div className="rail-title">
+          {entry.followed && <span className="rail-follow" title="Someone you follow" />}
+          {ev.name}
+        </div>
+        {meta && <div className="rail-sub">{meta}</div>}
+        {entry.extras?.map((x) => (
+          <div key={x} className="rail-sub rail-extra">{x}</div>
+        ))}
+      </div>
+      {entry.note && <div className="rail-note">{entry.note}</div>}
     </button>
   );
 }
